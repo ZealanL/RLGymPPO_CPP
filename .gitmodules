@@ -1,0 +1,3 @@
+[submodule "RLGymSim_CPP"]
+	path = RLGymSim_CPP
+	url = https://github.com/ZealanL/RLGymSim_CPP
