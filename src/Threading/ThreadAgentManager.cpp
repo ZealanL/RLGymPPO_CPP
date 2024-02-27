@@ -59,17 +59,37 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 	return result;
 }
 
-RLGPC::ThreadAgent::Times RLGPC::ThreadAgentManager::GetTotalAgentTimes() {
-	ThreadAgent::Times total = {};
-
-	for (ThreadAgent* agent : agents) {
-		for (auto itr1 = total.begin(), itr2 = agent->times.begin(); itr1 != total.end(); itr1++, itr2++) {
-			*itr1 += *itr2;
+void RLGPC::ThreadAgentManager::GetMetrics(Report& report) {
+	AvgTracker avgStepRew, avgEpRew;
+	for (auto agent : agents) {
+		for (auto game : agent->gameInsts) {
+			avgStepRew += game->avgStepRew.Get();
+			avgEpRew += game->avgEpRew.Get();
 		}
 	}
+	
+	report["Average Step Reward"] = avgStepRew.Get();
+	report["Average Episode Reward"] = avgEpRew.Get();
 
-	for (double& time : total)
+	ThreadAgent::Times avgTimes = {};
+
+	for (ThreadAgent* agent : agents)
+		for (auto itr1 = avgTimes.begin(), itr2 = agent->times.begin(); itr1 != avgTimes.end(); itr1++, itr2++)
+			*itr1 += *itr2;
+	
+	for (double& time : avgTimes)
 		time /= agents.size();
 
-	return total;
+	report["Env Step Time"] = avgTimes.envStepTime;
+	// NOTE: Because of non-blocking mode, a good portion of policy inference time is waited when appending trajectories
+	//	This means the trajectory append time is not correct at all, so this is a temporary solution
+	report["Policy Infer Time"] = avgTimes.policyInferTime + avgTimes.trajAppendTime;
+}
+
+void RLGPC::ThreadAgentManager::ResetMetrics() {
+	for (auto agent : agents) {
+		agent->times = {};
+		for (auto game : agent->gameInsts)
+			game->ResetAvgs();
+	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "../Lists.h"
+#include "../Util/AvgTracker.h"
 
 namespace RLGPC {
 	class GameInst {
@@ -11,8 +12,8 @@ namespace RLGPC {
 
 		uint64_t totalSteps;
 
-		float totalRew = 0;
-		uint64_t totalRewCount = 0;
+		float curEpRew = 0;
+		AvgTracker avgStepRew, avgEpRew;
 
 		// NOTE: Gym and match will be deleted when GameInst is deleted
 		GameInst(RLGSC::Gym* gym, RLGSC::Match* match) : gym(gym), match(match) {
@@ -21,16 +22,9 @@ namespace RLGPC {
 
 		RG_NO_COPY(GameInst);
 
-		float GetAvgReward() {
-			if (totalRewCount > 0) {
-				return totalRew / totalRewCount;
-			} else {
-				return NAN;
-			}
-		}
-
-		void ResetAvgReward() {
-			totalRew = totalRewCount = 0;
+		void ResetAvgs() {
+			avgStepRew.Reset();
+			avgEpRew.Reset();
 		}
 
 		void Start();
@@ -40,6 +34,5 @@ namespace RLGPC {
 			delete gym;
 			delete match;
 		}
-
 	};
 }

@@ -1,5 +1,7 @@
 #include "Learner.h"
 
+#include <torch/cuda.h>
+
 RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig config) :
 	envCreateFn(envCreateFn),
 	config(config), 
@@ -74,6 +76,42 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig config) :
 	agentMgr->CreateAgents(envCreateFn, config.numThreads, config.numGamesPerThread);
 }
 
+// Prints the metrics report in a similar way to rlgym-ppo
+void DisplayReport(const RLGPC::Report& report) {
+	constexpr const char* REPORT_DATA_ORDER[] = {
+		"Average Episode Reward",
+		"Average Step Reward",
+		"Policy Entropy",
+		"Value Function Loss",
+		"",
+		"Mean KL Divergence",
+		"SB3 Clip Fraction",
+		"Policy Update Magnitude",
+		"Value Function Update Magnitude",
+		"",
+		"Collected Steps/Second",
+		"Overall Steps/Second",
+		"",
+		"Collection Time",
+		"Consumption Time",
+		"PPO Learn Time",
+		"Total Iteration Time",
+		"",
+		"Cumulative Model Updates",
+		"Cumulative Timesteps",
+		"",
+		"Timesteps Collected"
+	};
+
+	for (const char* name : REPORT_DATA_ORDER) {
+		if (strlen(name) > 0) {
+			RG_LOG(name << ": " << report[name].ToString());
+		} else {
+			RG_LOG("");
+		}
+	}
+}
+
 void RLGPC::Learner::Learn() {
 	RG_LOG("Learner::Learn():")
 	RG_LOG("\tStarting agents...");
@@ -82,10 +120,11 @@ void RLGPC::Learner::Learn() {
 	RG_LOG("\tBeginning learning loop:");
 	Timer epochTimer = {};
 	while (totalTimesteps < config.timestepLimit || config.timestepLimit == 0) {
+		Report report = {};
+
 		// Collect the desired timesteps from our agents
 		RG_LOG("Collecting timesteps...");
 ;		GameTrajectory timesteps = agentMgr->CollectTimesteps(config.timestepsPerIteration);
-		auto totalAgentTimes = agentMgr->GetTotalAgentTimes();
 		double collectionTime = epochTimer.Elapsed();
 		uint64_t timestepsCollected = timesteps.size; // Use actual size instead of target size
 
@@ -98,44 +137,46 @@ void RLGPC::Learner::Learn() {
 		// Run the actual PPO learning on the experience we have collected
 		Timer ppoLearnTimer = {};
 		RG_LOG("Learning...");
-		auto metrics = ppo->Learn(expBuffer);
+		ppo->Learn(expBuffer, report);
 
 		double ppoLearnTime = ppoLearnTimer.Elapsed();
 		double epochTime = epochTimer.Elapsed();
-		epochTimer.Reset(); // Reset now otherwise we can have issues with the timer
+		epochTimer.Reset(); // Reset now otherwise we can have issues with the timer and thread input-locking
+		double consumptionTime = epochTime - collectionTime;
+
+		// Get all metrics from agent manager
+		agentMgr->GetMetrics(report);
+
+		{ // Add timers to report
+			report["Total Iteration Time"] = epochTime;
+
+			report["Collection Time"] = collectionTime;
+			report["Consumption Time"] = consumptionTime;
+			{
+				report["PPO Learn Time"] = ppoLearnTime;
+			}
+		}
+
+		{ // Add timestep data to report
+			report["Collected Steps/Second"] = (int64_t)(timestepsCollected / collectionTime);
+			report["Overall Steps/Second"] = (int64_t)(timestepsCollected / epochTime);
+			report["Timesteps Collected"] = timestepsCollected;
+			report["Cumulative Timesteps"] = totalTimesteps;
+		}
 
 		{ // Print results
 			constexpr const char* DIVIDER = "======================";
-			std::stringstream msg;
-			msg << "\n\n\n\n"; // Make some space
-			msg << DIVIDER << DIVIDER << std::endl;
-			msg << " ITERATION COMPLETED:" << std::endl;
-			msg << " Metrics:" << std::endl;
-			msg << metrics.ToString(" - ");
-			msg << DIVIDER << std::endl;
-			msg << " Average reward (per tick): " << agentMgr->GetAvgReward() << std::endl;
-			msg << DIVIDER << std::endl;
-			msg << " Total iteration time: " << epochTime << "s" << std::endl;
-			msg << " -  Collection:        " << collectionTime << "s" << std::endl;
-			msg << "    - Env step:        " << totalAgentTimes.envStepTime << "s" << std::endl;
-			msg << "    - Policy infer:    " << totalAgentTimes.policyInferTime << "s" << std::endl;
-			msg << "    - Traj append:     " << totalAgentTimes.trajAppendTime << "s" << std::endl;
-			
-			msg << " - Consumption time:   " << (epochTime - collectionTime) << "s" << std::endl;
-			msg << "    - PPO learn time:  " << ppoLearnTime << "s" << std::endl;
-			msg << " Collected Steps/Second: " << RG_COMMA_INT(timestepsCollected / collectionTime) << std::endl;
-			msg << "   Overall Steps/Second: " << RG_COMMA_INT(timestepsCollected / epochTime) << std::endl;
-			msg << DIVIDER << std::endl;
-			msg << " Timesteps collected: " << RG_COMMA_INT(timestepsCollected) << std::endl;
-			msg << " Cumulative timesteps: " << RG_COMMA_INT(totalTimesteps) << std::endl;
-			RG_LOG(msg.str());
+			RG_LOG("\n\n\n\n");// Make some space
+			RG_LOG(DIVIDER << DIVIDER);
+			RG_LOG("ITERATION COMPLETED:\n");
+			DisplayReport(report);
 		}
 
-		agentMgr->ResetAvgReward();
-		agentMgr->ResetAgentTimes();
+		// Reset everything
+		agentMgr->ResetMetrics();
 	}
-
-	RG_LOG("Learner: Timestep limit of " << config.timestepLimit << " reached, stopping");
+	
+	RG_LOG("Learner: Timestep limit of " << RG_COMMA_INT(config.timestepLimit) << " reached, stopping");
 	RG_LOG("\tStopping agents...");
 	agentMgr->StopAgents();
 }

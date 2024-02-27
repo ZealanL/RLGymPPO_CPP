@@ -1,5 +1,8 @@
 #include "ValueEstimator.h"
 
+#include <torch/nn/modules/linear.h>
+#include <torch/nn/modules/activation.h>
+
 RLGPC::ValueEstimator::ValueEstimator(int inputAmount, const IList& layerSizes, torch::Device device) : device(device) {
 	using namespace torch;
 

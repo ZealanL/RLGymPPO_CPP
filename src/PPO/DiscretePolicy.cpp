@@ -1,5 +1,8 @@
 #include "DiscretePolicy.h"
 
+#include <torch/nn/modules/linear.h>
+#include <torch/nn/modules/activation.h>
+
 RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const IList& layerSizes, torch::Device device) : 
 	device(device), inputAmount(inputAmount), actionAmount(actionAmount) {
 	using namespace torch;

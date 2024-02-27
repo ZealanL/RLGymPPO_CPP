@@ -1,6 +1,8 @@
 #pragma once
 #include "../Lists.h"
 
+#include <torch/nn/modules/container/sequential.h>
+
 namespace RLGPC {
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/ppo/value_estimator.py
 	class ValueEstimator : public torch::nn::Module {

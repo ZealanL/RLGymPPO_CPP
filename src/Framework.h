@@ -5,7 +5,8 @@
 
 // Include torch
 // TODO: Don't make everyone that uses this library have to include torch, because dear god
-#include <torch/all.h>
+#include <ATen/ATen.h>
+#include <torch/utils.h>
 
 #define RG_SLEEP(ms) std::this_thread::sleep_for(std::chrono::milliseconds(ms))
 

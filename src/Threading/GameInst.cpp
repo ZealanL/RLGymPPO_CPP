@@ -11,15 +11,22 @@ RLGSC::Gym::StepResult RLGPC::GameInst::Step(const IList& actions) {
 
 	auto& nextObs = stepData.obs;
 
-	{ // Update avg reward
+	{ // Update avg rewards
+		float totalRew = 0;
 		for (int i = 0; i < match->playerAmount; i++)
 			totalRew += stepData.reward[i];
-		totalRewCount += match->playerAmount;
+
+		avgStepRew.Add(totalRew, match->playerAmount);
+		curEpRew += totalRew / match->playerAmount;
 	}
 
 	// Environment ending
-	if (stepData.done)
+	if (stepData.done) {
 		nextObs = gym->Reset();
+		
+		avgEpRew += curEpRew;
+		curEpRew = 0;
+	}
 
 	curObs = nextObs;
 	totalSteps++;

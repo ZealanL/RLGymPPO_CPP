@@ -37,9 +37,7 @@ namespace RLGPC {
 				return &trajAppendTime + 1;
 			}
 		};
-		Times times = {};
-
-		float avgRew = 0;
+		Times times = {}; // TODO: Convert to use Report instead
 
 		std::vector<std::vector<GameTrajectory>> trajectories = {};
 		std::mutex trajMutex = {};
@@ -47,11 +45,6 @@ namespace RLGPC {
 		ThreadAgent(void* manager, int numGames, EnvCreateFn envCreateFn);
 
 		RG_NO_COPY(ThreadAgent);
-
-		void ResetAvgReward() {
-			for (auto game : gameInsts)
-				game->ResetAvgReward();
-		}
 
 		void Start();
 		void Stop();

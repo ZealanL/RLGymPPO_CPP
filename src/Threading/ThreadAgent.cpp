@@ -1,7 +1,7 @@
 #include "ThreadAgent.h"
 
 #include "ThreadAgentManager.h"
-#include "../Timer.h"
+#include "../Util/Timer.h"
 
 using namespace RLGPC;
 
@@ -62,14 +62,11 @@ void _RunFunc(ThreadAgent* ta) {
 			stepResults[i] = game->Step(TENSOR_TO_ILIST(actionSlice));
 
 			actionsOffset += numPlayers;
-			avgRew += game->GetAvgReward();
 		}
 
 		// Make sure we got the end of actions
 		// Otherwise there's a wrong number of actions for whatever reason
 		assert(actionsOffset == actionResults.action.size(0));
-
-		ta->avgRew = avgRew / numGames;
 		ta->times.envStepTime += gymStepTimer.Elapsed();
 
 		// Update our tensor storing the next observation after the step, from each gym

@@ -1,12 +1,16 @@
 #include "PPOLearner.h"
 
+#include <torch/nn/utils/convert_parameters.h>
+#include <torch/nn/utils/clip_grad.h>
+#include <torch/csrc/api/include/torch/serialize.h>
+
 using namespace torch;
 
-torch::Tensor _CopyParams(torch::nn::Module* mod) {
+Tensor _CopyParams(nn::Module* mod) {
 	return torch::nn::utils::parameters_to_vector(mod->parameters()).cpu();
 }
 
-RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConfig config, torch::Device device) 
+RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConfig config, Device device) 
 	: config(config), device(device) {
 
 	if (config.miniBatchSize == 0)
@@ -14,12 +18,12 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 
 	policy = new DiscretePolicy(obsSpaceSize, actSpaceSize, config.policyLayerSizes, device);
 	valueNet = new ValueEstimator(obsSpaceSize, config.criticLayerSizes, device);
-	policyOptimizer = new optim::Adam(policy->parameters(), torch::optim::AdamOptions(config.policyLR));
-	valueOptimizer = new optim::Adam(valueNet->parameters(), torch::optim::AdamOptions(config.criticLR));
-	valueLossFn = torch::nn::MSELoss();
+	policyOptimizer = new optim::Adam(policy->parameters(), optim::AdamOptions(config.policyLR));
+	valueOptimizer = new optim::Adam(valueNet->parameters(), optim::AdamOptions(config.criticLR));
+	valueLossFn = nn::MSELoss();
 }
 
-RLGPC::Report RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer) {
+void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	int
 		numIterations = 0,
 		numMinibatchIterations = 0;
@@ -75,8 +79,8 @@ RLGPC::Report RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer) {
 				logProbs = logProbs.view_as(oldProbs);
 
 				// Compute PPO loss
-				auto ratio = torch::exp(logProbs - oldProbs);
-				auto clipped = torch::clamp(
+				auto ratio = exp(logProbs - oldProbs);
+				auto clipped = clamp(
 					ratio, 1 - config.clipRange, 1 + config.clipRange
 				);
 
@@ -87,15 +91,15 @@ RLGPC::Report RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer) {
 					RG_NOGRAD;
 
 					auto logRatio = logProbs - oldProbs;
-					auto klTensor = (torch::exp(logRatio) - 1) - logRatio;
+					auto klTensor = (exp(logRatio) - 1) - logRatio;
 					kl = klTensor.mean().detach().cpu().item<float>();
 
-					clipFraction = torch::mean((torch::abs(ratio - 1) > config.clipRange).to(kFloat)).cpu().item<float>();
+					clipFraction = mean((abs(ratio - 1) > config.clipRange).to(kFloat)).cpu().item<float>();
 					clipFractions.push_back(clipFraction);
 				}
 
 				// Compute policy loss
-				auto policyLoss = -torch::min(
+				auto policyLoss = -min(
 					ratio * advantages, clipped * advantages
 				).mean();
 				auto valueLoss = valueLossFn(vals, targetValues);
@@ -110,8 +114,8 @@ RLGPC::Report RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer) {
 				numMinibatchIterations += 1;
 			}
 
-			torch::nn::utils::clip_grad_norm_(valueNet->parameters(), 0.5f);
-			torch::nn::utils::clip_grad_norm_(policy->parameters(), 0.5f);
+			nn::utils::clip_grad_norm_(valueNet->parameters(), 0.5f);
+			nn::utils::clip_grad_norm_(policy->parameters(), 0.5f);
 
 			policyOptimizer->step();
 			valueOptimizer->step();
@@ -144,20 +148,17 @@ RLGPC::Report RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer) {
 
 	// Assemble and return report
 	cumulativeModelUpdates += numIterations;
-	Report report = {};
-	report.Add("PPO Batch Consumption Time", timer.Elapsed() / numIterations);
-	report.Add("Cumulative Model Updates", cumulativeModelUpdates);
-	report.Add("Policy Entropy", meanEntropy);
-	report.Add("Mean KL Divergence", meanDivergence);
-	report.Add("Value Function Loss", meanValLoss);
-	report.Add("SB3 Clip Fraction", meanClip);
-	report.Add("Policy Update Magnitude", policyUpdateMagnitude);
-	report.Add("Value Function Update Magnitude", criticUpdateMagnitude);
+	report["PPO Batch Consumption Time"] =  timer.Elapsed() / numIterations;
+	report["Cumulative Model Updates"] = cumulativeModelUpdates;
+	report["Policy Entropy"] = meanEntropy;
+	report["Mean KL Divergence"] = meanDivergence;
+	report["Value Function Loss"] = meanValLoss;
+	report["SB3 Clip Fraction"] = meanClip;
+	report["Policy Update Magnitude"] = policyUpdateMagnitude;
+	report["Value Function Update Magnitude"] = criticUpdateMagnitude;
 
 	policyOptimizer->zero_grad();
 	valueOptimizer->zero_grad();
-
-	return report;
 }
 
 // Code in here is by alireza_dizaji
@@ -172,15 +173,15 @@ void load_state_dict(nn::Module* model, std::filesystem::path filename) {
 		(std::istreambuf_iterator<char>()));
 
 	input.close();
-	c10::Dict<IValue, IValue> weights = torch::pickle_load(bytes).toGenericDict();
+	c10::Dict<IValue, IValue> weights = pickle_load(bytes).toGenericDict();
 
-	const torch::OrderedDict<std::string, at::Tensor>& model_params = model->named_parameters();
+	const OrderedDict<std::string, at::Tensor>& model_params = model->named_parameters();
 	std::vector<std::string> param_names;
 	for (auto const& w : model_params) {
 		param_names.push_back(w.key());
 	}
 
-	torch::NoGradGuard no_grad;
+	NoGradGuard no_grad;
 	for (auto const& w : weights) {
 		std::string name = w.key().toStringRef();
 		at::Tensor src = w.value().toTensor();

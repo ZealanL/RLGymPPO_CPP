@@ -1,6 +1,7 @@
 #pragma once
 #include "ThreadAgent.h"
 #include "../PPO/ExperienceBuffer.h"
+#include "../Util/Report.h"
 #include "../Util/WelfordRunningStat.h"
 
 namespace RLGPC {
@@ -32,25 +33,8 @@ namespace RLGPC {
 				agent->Stop();
 		}
 
-		ThreadAgent::Times GetTotalAgentTimes();
-
-		void ResetAgentTimes() {
-			for (ThreadAgent* agent : agents) {
-				agent->times = {};
-			}
-		}
-
-		float GetAvgReward() {
-			float avg = 0;
-			for (ThreadAgent* agent : agents)
-				avg += agent->avgRew;
-			return avg / agents.size();
-		}
-
-		void ResetAvgReward() {
-			for (ThreadAgent* agent : agents)
-				agent->ResetAvgReward();
-		}
+		void GetMetrics(Report& report);
+		void ResetMetrics();
 
 		GameTrajectory CollectTimesteps(uint64_t amount);
 
