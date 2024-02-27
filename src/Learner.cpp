@@ -212,6 +212,8 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 	FList valPreds = TENSOR_TO_FLIST(valPredsTensor);
 	// TODO: rlgym-ppo runs torch.cuda.empty_cache() here
 	
+	float retStd = (config.standardizeReturns ? returnStats.GetSTD()[0] : 1);
+
 	// Compute GAE stuff
 	torch::Tensor advantages, valueTargets;
 	FList returns;
@@ -224,8 +226,14 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 		valueTargets,
 		returns,
 		config.gaeGamma,
-		config.gaeLambda
+		config.gaeLambda,
+		retStd
 	);
+
+	if (config.standardizeReturns) {
+		int numToIncrement = RS_MIN(config.maxReturnsPerStatsInc, returns.size());
+		returnStats.Increment(returns, numToIncrement);
+	}
 
 	auto expTensors = ExperienceTensors{
 			trajData.states,

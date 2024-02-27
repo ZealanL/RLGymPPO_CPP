@@ -1,6 +1,7 @@
 #pragma once
 #include "PPO/PPOLearner.h"
 #include "Threading/ThreadAgentManager.h"
+#include "Util/WelfordRunningStat.h"
 
 namespace RLGPC {
 
@@ -24,7 +25,7 @@ namespace RLGPC {
 		int expBufferSize = 100 * 1000;
 		int timestepsPerIteration = 50 * 1000;
 		bool standardizeReturns = true;
-		bool standardizeOBS = true;
+		bool standardizeOBS = true; // TODO: Implement
 		int maxReturnsPerStatsInc = 150;
 		int stepsPerObsStatsInc = 5;
 
@@ -58,6 +59,8 @@ namespace RLGPC {
 
 		uint64_t epoch = 0;
 		uint64_t totalTimesteps = 0;
+
+		WelfordRunningStat returnStats = WelfordRunningStat(1);
 
 		Learner(EnvCreateFn envCreateFunc, LearnerConfig config);
 		void Learn();

@@ -26,6 +26,12 @@ namespace RLGPC {
 				Update(samples[i]);
 		}
 
+		// TODO: Inefficient construction of another FList
+		void Increment(const FList& samples, int num) {
+			for (int i = 0; i < num; i++)
+				Update(FList({ samples[i] }));
+		}
+
 		void Update(const FList& sample) {
 			int currentCount = count;
 			count++;
@@ -56,7 +62,7 @@ namespace RLGPC {
 			return runningMean;
 		}
 
-		FList STD() {
+		FList GetSTD() {
 			if (count < 2)
 				return ones;
 
