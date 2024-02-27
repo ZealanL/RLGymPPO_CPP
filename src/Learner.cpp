@@ -78,6 +78,9 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig config) :
 
 // Prints the metrics report in a similar way to rlgym-ppo
 void DisplayReport(const RLGPC::Report& report) {
+	// FORMAT:
+	//	blank line = print blank line
+	//	'-' before name = indent with dashes and spaces
 	constexpr const char* REPORT_DATA_ORDER[] = {
 		"Average Episode Reward",
 		"Average Step Reward",
@@ -94,7 +97,8 @@ void DisplayReport(const RLGPC::Report& report) {
 		"",
 		"Collection Time",
 		"Consumption Time",
-		"PPO Learn Time",
+		"-PPO Learn Time",
+		"--PPO Gradient Time",
 		"Total Iteration Time",
 		"",
 		"Cumulative Model Updates",
@@ -105,7 +109,19 @@ void DisplayReport(const RLGPC::Report& report) {
 
 	for (const char* name : REPORT_DATA_ORDER) {
 		if (strlen(name) > 0) {
-			RG_LOG(name << ": " << report[name].ToString());
+			int indentLevel = 0;
+			while (name[0] == '-') {
+				indentLevel++;
+				name++;
+			}
+
+			std::string prefix = {};
+			if (indentLevel > 0) {
+				prefix += std::string((indentLevel - 1) * 3, ' ');
+				prefix += " - ";
+			}
+
+			RG_LOG(prefix << name << ": " << report[name].ToString());
 		} else {
 			RG_LOG("");
 		}

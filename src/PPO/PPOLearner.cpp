@@ -40,6 +40,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	float batchSizeRatio = config.miniBatchSize / config.batchSize;
 
 	Timer timer = {};
+	float gradientTime = 0;
 	for (int epoch = 0; epoch < config.epochs; epoch++) {
 
 		// Get randomly-ordered timesteps for PPO
@@ -105,8 +106,13 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				auto valueLoss = valueLossFn(vals, targetValues);
 				auto ppoLoss = (policyLoss - entropy * config.entCoef) * batchSizeRatio;
 
+				Timer backwardTime = {};
+				// NOTE: These gradient calls are a substantial portion of learn time
+				//	From my testing, they are around 61% of learn time
+				//	Results will probably vary heavily depending on model size and GPU strength
 				ppoLoss.backward();
 				valueLoss.backward();
+				gradientTime += backwardTime.Elapsed();
 
 				meanValLoss += valueLoss.cpu().detach().item<float>();
 				meanDivergence += kl;
@@ -146,9 +152,11 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	float policyUpdateMagnitude = (policyBefore - policyAfter).norm().item<float>();
 	float criticUpdateMagnitude = (criticBefore - criticAfter).norm().item<float>();
 
+	float totalTime = timer.Elapsed();
+
 	// Assemble and return report
 	cumulativeModelUpdates += numIterations;
-	report["PPO Batch Consumption Time"] =  timer.Elapsed() / numIterations;
+	report["PPO Batch Consumption Time"] = totalTime / numIterations;
 	report["Cumulative Model Updates"] = cumulativeModelUpdates;
 	report["Policy Entropy"] = meanEntropy;
 	report["Mean KL Divergence"] = meanDivergence;
@@ -156,6 +164,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	report["SB3 Clip Fraction"] = meanClip;
 	report["Policy Update Magnitude"] = policyUpdateMagnitude;
 	report["Value Function Update Magnitude"] = criticUpdateMagnitude;
+	report["PPO Gradient Time"] = gradientTime;
 
 	policyOptimizer->zero_grad();
 	valueOptimizer->zero_grad();
