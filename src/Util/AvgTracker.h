@@ -26,6 +26,11 @@ namespace RLGPC {
 			}
 		}
 
+		AvgTracker& operator+=(float val) {
+			Add(val);
+			return *this;
+		}
+
 		void Add(float totalVal, uint64_t count) {
 			if (!isnan(totalVal)) {
 				total += totalVal;
@@ -33,8 +38,8 @@ namespace RLGPC {
 			}
 		}
 
-		AvgTracker& operator+=(float val) {
-			Add(val);
+		AvgTracker& operator+=(const AvgTracker& other) {
+			Add(other.total, other.count);
 			return *this;
 		}
 

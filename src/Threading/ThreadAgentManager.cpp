@@ -63,8 +63,8 @@ void RLGPC::ThreadAgentManager::GetMetrics(Report& report) {
 	AvgTracker avgStepRew, avgEpRew;
 	for (auto agent : agents) {
 		for (auto game : agent->gameInsts) {
-			avgStepRew += game->avgStepRew.Get();
-			avgEpRew += game->avgEpRew.Get();
+			avgStepRew += game->avgStepRew;
+			avgEpRew += game->avgEpRew;
 		}
 	}
 	
