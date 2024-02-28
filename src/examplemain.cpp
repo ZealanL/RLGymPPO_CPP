@@ -53,9 +53,12 @@ int main() {
 	cfg.numThreads = 8;
 	cfg.numGamesPerThread = 16;
 
-	int tsPerItr = 50000;
+	// We want a large itr/batch size
+	// Increase this up to ~700k, stop if you start losing steps/second
+	int tsPerItr = 100 * 1000;
 	cfg.timestepsPerIteration = tsPerItr;
 	cfg.ppo.batchSize = tsPerItr;
+	cfg.ppo.miniBatchSize = 100 * 1000; // Lower this if too much VRAM is being allocated
 	cfg.expBufferSize = tsPerItr * 3;
 	cfg.ppo.epochs = 1;
 
