@@ -39,7 +39,7 @@ void _RunFunc(ThreadAgent* ta) {
 	while (ta->shouldRun) {
 		// Move our current OBS tensor to the device we run the policy on
 		// This conversion time is not counted as a part of policy inference time
-		torch::Tensor curObsTensorDevice = curObsTensor.to(device);
+		torch::Tensor curObsTensorDevice = curObsTensor.to(device, true);
 
 		// Infer the policy to get actions for all our agents in all our games
 		Timer policyInferTimer = {};

@@ -25,7 +25,7 @@ RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const I
 
 	register_module("seq", seq);
 
-	this->to(device);
+	this->to(device, true);
 }
 
 RLGPC::DiscretePolicy::ActionResult RLGPC::DiscretePolicy::GetAction(torch::Tensor obs) {
@@ -65,7 +65,7 @@ int RLGPC::DiscretePolicy::GetDeterministicActionIdx(torch::Tensor obs) {
 
 RLGPC::DiscretePolicy::BackpropResult RLGPC::DiscretePolicy::GetBackpropData(torch::Tensor obs, torch::Tensor acts) {
 	// Get probability of each action
-	acts = acts.to(torch::kInt64);
+	acts = acts.to(torch::kInt64, true);
 	auto probs = GetOutput(obs);
 	probs = probs.view({ -1, actionAmount });
 	probs = torch::clamp(probs, ACTION_MIN_PROB, 1); // Prevent actions from being impossible, and also log(0)
@@ -76,5 +76,5 @@ RLGPC::DiscretePolicy::BackpropResult RLGPC::DiscretePolicy::GetBackpropData(tor
 	auto actionLogProbs = logProbs.gather(-1, acts);
 	auto entropy = -(logProbs * probs).sum(-1);
 
-	return BackpropResult{ actionLogProbs.to(device), entropy.to(device).mean() };
+	return BackpropResult{ actionLogProbs.to(device, true), entropy.to(device).mean() };
 }

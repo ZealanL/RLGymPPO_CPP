@@ -210,7 +210,7 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 	size_t count = trajData.actions.size(0);
 
 	// Construct input to the value function estimator that includes the final state (which an action was not taken in)
-	auto valInput = torch::cat({ trajData.states, torch::unsqueeze(trajData.nextStates[count - 1], 0) }).to(device);
+	auto valInput = torch::cat({ trajData.states, torch::unsqueeze(trajData.nextStates[count - 1], 0) }).to(device, true);
 
 	auto valPredsTensor = ppo->valueNet->Forward(valInput).cpu().flatten();
 	FList valPreds = TENSOR_TO_FLIST(valPredsTensor);

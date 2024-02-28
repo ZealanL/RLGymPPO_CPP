@@ -24,5 +24,5 @@ RLGPC::ValueEstimator::ValueEstimator(int inputAmount, const IList& layerSizes, 
 
 	register_module("seq", seq);
 
-	this->to(device);
+	this->to(device, true);
 }

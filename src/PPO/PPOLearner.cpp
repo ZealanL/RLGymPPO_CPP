@@ -63,16 +63,15 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				int stop = start + config.miniBatchSize;
 
 				// Send everything to the device and enforce correct shapes
-				auto acts = batchActs.slice(0, start, stop).to(device);
-				auto obs = batchObs.slice(0, start, stop).to(device);
-				auto advantages = batchAdvantages.slice(0, start, stop).to(device);
-				auto oldProbs = batchOldProbs.slice(0, start, stop).to(device);
-				auto targetValues = batchTargetValues.slice(0, start, stop).to(device);
+				auto acts = batchActs.slice(0, start, stop).to(device, true);
+				auto obs = batchObs.slice(0, start, stop).to(device, true);
+				auto advantages = batchAdvantages.slice(0, start, stop).to(device, true);
+				auto oldProbs = batchOldProbs.slice(0, start, stop).to(device, true);
+				auto targetValues = batchTargetValues.slice(0, start, stop).to(device, true);
 
 				timer.Reset();
 				// Compute value estimates
 				auto vals = valueNet->Forward(obs);
-				vals = vals.view_as(targetValues);
 				report.Accum("PPO Value Estimate Time", timer.Elapsed());
 
 				timer.Reset();
@@ -89,6 +88,8 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				auto clipped = clamp(
 					ratio, 1 - config.clipRange, 1 + config.clipRange
 				);
+
+				vals = vals.view_as(targetValues);
 
 				// Compute policy loss
 				auto policyLoss = -min(

@@ -13,7 +13,7 @@ namespace RLGPC {
 		ValueEstimator(int inputAmount, const IList& layerSizes, torch::Device device);
 
 		torch::Tensor Forward(torch::Tensor input) {
-			return seq->forward(input).to(device);
+			return seq->forward(input).to(device, true);
 		}
 	};
 }
