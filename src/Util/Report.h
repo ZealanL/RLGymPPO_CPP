@@ -48,7 +48,20 @@ namespace RLGPC {
 			if (digitCommas)
 				stream.imbue(commaLocale);
 
-			stream << key << ": " << (*this)[key];
+			stream << key << ": ";
+			
+			Val val = (*this)[key];
+
+			if ((abs(val) < 1e-3 && val != 0) || abs(val) >= 1e11) {
+				stream << std::scientific << val;
+			} else {
+				if (val == (int64_t)val) {
+					stream << (int64_t)val;
+				} else {
+					stream << std::fixed << std::setprecision(4) << val;
+				}
+			}
+
 			return stream.str();
 		}
 
