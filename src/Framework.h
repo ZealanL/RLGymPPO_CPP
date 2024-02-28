@@ -6,6 +6,7 @@
 // Include torch
 // TODO: Don't make everyone that uses this library have to include torch, because dear god
 #include <ATen/ATen.h>
+#include <ATen/autocast_mode.h>
 #include <torch/utils.h>
 
 #define RG_SLEEP(ms) std::this_thread::sleep_for(std::chrono::milliseconds(ms))
@@ -24,3 +25,10 @@ static inline std::string _RG_COMMA_INT(int64_t i) {
 	return s;
 }
 #define RG_COMMA_INT(i) _RG_COMMA_INT(i) 
+
+#define RG_AUTOCAST_ON() at::autocast::set_enabled(true)
+
+#define RG_AUTOCAST_OFF() { \
+at::autocast::clear_cache(); \
+at::autocast::set_enabled(false); \
+}

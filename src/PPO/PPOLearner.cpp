@@ -3,6 +3,7 @@
 #include <torch/nn/utils/convert_parameters.h>
 #include <torch/nn/utils/clip_grad.h>
 #include <torch/csrc/api/include/torch/serialize.h>
+#include <ATen/autocast_mode.h>
 
 using namespace torch;
 
@@ -24,6 +25,8 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 }
 
 void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
+	RG_AUTOCAST_ON();
+
 	int
 		numIterations = 0,
 		numMinibatchIterations = 0;
@@ -175,6 +178,8 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 
 	policyOptimizer->zero_grad();
 	valueOptimizer->zero_grad();
+
+	RG_AUTOCAST_OFF();
 }
 
 // Code in here is by alireza_dizaji
