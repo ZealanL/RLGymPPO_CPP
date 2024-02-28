@@ -182,10 +182,12 @@ void RLGPC::Learner::Learn() {
 
 		{ // Print results
 			constexpr const char* DIVIDER = "======================";
-			RG_LOG("\n\n\n\n");// Make some space
+			RG_LOG("\n");
 			RG_LOG(DIVIDER << DIVIDER);
 			RG_LOG("ITERATION COMPLETED:\n");
 			DisplayReport(report);
+			RG_LOG(DIVIDER << DIVIDER);
+			RG_LOG("\n");
 		}
 
 		// Reset everything
