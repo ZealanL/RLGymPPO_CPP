@@ -152,22 +152,29 @@ void RLGPC::Learner::Learn() {
 		RG_LOG("Adding experience...");
 		AddNewExperience(timesteps);
 
-		// Run the actual PPO learning on the experience we have collected
+		
+		
 		Timer ppoLearnTimer = {};
-		RG_LOG("Learning...");
-		
-		// Stop agents from inferencing if we are not on CPU
-		// Otherwise PPO learn will take substantial performance hits
-		bool blockAgentInference = !device.is_cpu();
-		if (blockAgentInference)
-			for (auto agent : agentMgr->agents)
-				agent->inferenceMutex.lock();
+		{ // Run the actual PPO learning on the experience we have collected
+			
+			RG_LOG("Learning...");
+			// Stop agents from inferencing if we are not on CPU
+			// Otherwise PPO learn will take substantial performance hits
+			bool blockAgentInference = !device.is_cpu();
+			if (blockAgentInference)
+				for (auto agent : agentMgr->agents)
+					agent->inferenceMutex.lock();
 
-		ppo->Learn(expBuffer, report);
-		
-		if (blockAgentInference)
-			for (auto agent : agentMgr->agents)
-				agent->inferenceMutex.unlock();
+			try {
+				ppo->Learn(expBuffer, report);
+			} catch (std::exception& e) {
+				RG_ERR_CLOSE("Exception during PPOLearner::Learn(): " << e.what());
+			}
+
+			if (blockAgentInference)
+				for (auto agent : agentMgr->agents)
+					agent->inferenceMutex.unlock();
+		}
 
 		double ppoLearnTime = ppoLearnTimer.Elapsed();
 		double epochTime = epochTimer.Elapsed();
