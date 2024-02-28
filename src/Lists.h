@@ -21,7 +21,7 @@ namespace RLGPC {
 
 	inline FList TENSOR_TO_FLIST(torch::Tensor tensor) {
 		assert(tensor.dim() == 1);
-		tensor = tensor.cpu().detach();
+		tensor = tensor.cpu().detach().to(torch::kFloat32);
 		float* data = tensor.data_ptr<float>();
 		return FList(data, data + tensor.size(0));
 	}
