@@ -25,7 +25,7 @@ namespace RLGPC {
 		int expBufferSize = 100 * 1000;
 		int timestepsPerIteration = 50 * 1000;
 		bool standardizeReturns = true;
-		bool standardizeOBS = true; // TODO: Implement
+		bool standardizeOBS = false; // TODO: Implement
 		int maxReturnsPerStatsInc = 150;
 		int stepsPerObsStatsInc = 5;
 

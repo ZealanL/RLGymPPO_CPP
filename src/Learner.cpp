@@ -7,6 +7,10 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig config) :
 	config(config), 
 	device(at::Device(at::kCPU)) // Legally required to initialize this unfortunately
 {
+
+	if (config.standardizeOBS)
+		RG_ERR_CLOSE("LearnerConfig.standardizeOBS has not yet been implemented, sorry");
+
 	RG_LOG("Learner::Learner():");
 	
 	if (config.saveFolderAddUnixTimestamp)
