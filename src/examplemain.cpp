@@ -31,7 +31,10 @@ EnvCreateResult EnvCreateFunc() {
 		terminalConditions,
 		obs,
 		actionParser,
-		stateSetter
+		stateSetter,
+
+		1, // Team size
+		true // Spawn opponents
 	);
 
 	Gym* gym = new Gym(match, TICK_SKIP);
