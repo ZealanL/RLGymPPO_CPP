@@ -39,8 +39,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 
 	float batchSizeRatio = config.miniBatchSize / config.batchSize;
 
-	Timer timer = {};
-	float gradientTime = 0;
+	Timer totalTimer = {};
 	for (int epoch = 0; epoch < config.epochs; epoch++) {
 
 		// Get randomly-ordered timesteps for PPO
@@ -58,6 +57,8 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			valueOptimizer->zero_grad();
 
 			for (int mbs = 0; mbs < config.batchSize; mbs += config.miniBatchSize) {
+				Timer timer = {};
+
 				int start = mbs;
 				int stop = start + config.miniBatchSize;
 
@@ -68,22 +69,33 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				auto oldProbs = batchOldProbs.slice(0, start, stop).to(device);
 				auto targetValues = batchTargetValues.slice(0, start, stop).to(device);
 
+				timer.Reset();
 				// Compute value estimates
 				auto vals = valueNet->Forward(obs);
 				vals = vals.view_as(targetValues);
+				report.Accum("PPO Value Estimate Time", timer.Elapsed());
 
+				timer.Reset();
 				// Get policy log probs & entropy
 				DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts);
 				auto logProbs = bpResult.actionLogProbs;
 				auto entropy = bpResult.entropy;
 
 				logProbs = logProbs.view_as(oldProbs);
+				report.Accum("PPO Backprop Data Time", timer.Elapsed());
 
 				// Compute PPO loss
 				auto ratio = exp(logProbs - oldProbs);
 				auto clipped = clamp(
 					ratio, 1 - config.clipRange, 1 + config.clipRange
 				);
+
+				// Compute policy loss
+				auto policyLoss = -min(
+					ratio * advantages, clipped * advantages
+				).mean();
+				auto valueLoss = valueLossFn(vals, targetValues);
+				auto ppoLoss = (policyLoss - entropy * config.entCoef) * batchSizeRatio;
 
 				// Compute KL divergence & clip fraction using SB3 method for reporting
 				float kl;
@@ -98,21 +110,15 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 					clipFraction = mean((abs(ratio - 1) > config.clipRange).to(kFloat)).cpu().item<float>();
 					clipFractions.push_back(clipFraction);
 				}
+				
 
-				// Compute policy loss
-				auto policyLoss = -min(
-					ratio * advantages, clipped * advantages
-				).mean();
-				auto valueLoss = valueLossFn(vals, targetValues);
-				auto ppoLoss = (policyLoss - entropy * config.entCoef) * batchSizeRatio;
-
-				Timer backwardTime = {};
+				timer.Reset();
 				// NOTE: These gradient calls are a substantial portion of learn time
 				//	From my testing, they are around 61% of learn time
 				//	Results will probably vary heavily depending on model size and GPU strength
 				ppoLoss.backward();
 				valueLoss.backward();
-				gradientTime += backwardTime.Elapsed();
+				report.Accum("PPO Gradient Time", timer.Elapsed());
 
 				meanValLoss += valueLoss.cpu().detach().item<float>();
 				meanDivergence += kl;
@@ -152,7 +158,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	float policyUpdateMagnitude = (policyBefore - policyAfter).norm().item<float>();
 	float criticUpdateMagnitude = (criticBefore - criticAfter).norm().item<float>();
 
-	float totalTime = timer.Elapsed();
+	float totalTime = totalTimer.Elapsed();
 
 	// Assemble and return report
 	cumulativeModelUpdates += numIterations;
@@ -164,7 +170,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	report["SB3 Clip Fraction"] = meanClip;
 	report["Policy Update Magnitude"] = policyUpdateMagnitude;
 	report["Value Function Update Magnitude"] = criticUpdateMagnitude;
-	report["PPO Gradient Time"] = gradientTime;
+	report["PPO Learn Time"] = totalTimer.Elapsed();
 
 	policyOptimizer->zero_grad();
 	valueOptimizer->zero_grad();

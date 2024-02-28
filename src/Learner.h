@@ -66,6 +66,8 @@ namespace RLGPC {
 		void Learn();
 		void AddNewExperience(GameTrajectory& gameTraj);
 
+		std::function<void(const Report&)> iterationCallback = NULL;
+
 		RG_NO_COPY(Learner);
 
 		~Learner() {

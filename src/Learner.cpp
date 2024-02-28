@@ -98,6 +98,8 @@ void DisplayReport(const RLGPC::Report& report) {
 		"Collection Time",
 		"Consumption Time",
 		"-PPO Learn Time",
+		"--PPO Value Estimate Time",
+		"--PPO Backprop Data Time",
 		"--PPO Gradient Time",
 		"Total Iteration Time",
 		"",
@@ -121,7 +123,7 @@ void DisplayReport(const RLGPC::Report& report) {
 				prefix += " - ";
 			}
 
-			RG_LOG(prefix << name << ": " << report[name].ToString());
+			RG_LOG(prefix << report.SingleToString(name, true));
 		} else {
 			RG_LOG("");
 		}
@@ -168,9 +170,6 @@ void RLGPC::Learner::Learn() {
 
 			report["Collection Time"] = collectionTime;
 			report["Consumption Time"] = consumptionTime;
-			{
-				report["PPO Learn Time"] = ppoLearnTime;
-			}
 		}
 
 		{ // Add timestep data to report
@@ -179,6 +178,9 @@ void RLGPC::Learner::Learn() {
 			report["Timesteps Collected"] = timestepsCollected;
 			report["Cumulative Timesteps"] = totalTimesteps;
 		}
+
+		if (iterationCallback)
+			iterationCallback(report);
 
 		{ // Print results
 			constexpr const char* DIVIDER = "======================";
