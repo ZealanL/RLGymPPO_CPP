@@ -42,6 +42,10 @@ namespace RLGPC {
 		std::vector<std::vector<GameTrajectory>> trajectories = {};
 		std::mutex trajMutex = {};
 
+		// Lock this to stop the agent from inferencing
+		// Useful if agent inference is blocking gpu-intensive learning
+		std::mutex inferenceMutex = {};
+
 		ThreadAgent(void* manager, int numGames, EnvCreateFn envCreateFn);
 
 		RG_NO_COPY(ThreadAgent);

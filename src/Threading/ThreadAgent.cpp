@@ -43,7 +43,9 @@ void _RunFunc(ThreadAgent* ta) {
 
 		// Infer the policy to get actions for all our agents in all our games
 		Timer policyInferTimer = {};
+		ta->inferenceMutex.lock();
 		auto actionResults = mgr->policy->GetAction(curObsTensorDevice);
+		ta->inferenceMutex.unlock();
 		ta->times.policyInferTime += policyInferTimer.Elapsed();
 
 		// Step the gym with the actions we got
