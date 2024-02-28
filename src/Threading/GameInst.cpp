@@ -20,6 +20,9 @@ RLGSC::Gym::StepResult RLGPC::GameInst::Step(const IList& actions) {
 		curEpRew += totalRew / match->playerAmount;
 	}
 
+	if (stepCallback)
+		stepCallback(this);
+
 	// Environment ending
 	if (stepData.done) {
 		nextObs = gym->Reset();

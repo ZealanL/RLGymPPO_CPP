@@ -1,6 +1,7 @@
 #pragma once
 #include "../Lists.h"
 #include "../Util/AvgTracker.h"
+#include "../Util/Report.h"
 
 namespace RLGPC {
 	class GameInst {
@@ -14,6 +15,9 @@ namespace RLGPC {
 
 		float curEpRew = 0;
 		AvgTracker avgStepRew, avgEpRew;
+
+		Report metrics = {};
+		std::function<void(GameInst*)> stepCallback = NULL;
 
 		// NOTE: Gym and match will be deleted when GameInst is deleted
 		GameInst(RLGSC::Gym* gym, RLGSC::Match* match) : gym(gym), match(match) {
