@@ -51,7 +51,7 @@ int main() {
 	// Play around with these to see what the optimal is for your machine
 	// I personally find having less threads than my CPU thread count actually yields more SPS
 	cfg.numThreads = 8;
-	cfg.numGamesPerThread = 16;
+	cfg.numGamesPerThread = 24;
 
 	// We want a large itr/batch size
 	// Increase this up to ~700k, stop if you start losing steps/second
@@ -68,10 +68,6 @@ int main() {
 	// Decently-strong learning rate to start, may start to be too high around 50m-100m steps
 	cfg.ppo.policyLR = 2e-3;
 	cfg.ppo.criticLR = 2e-3;
-
-	// Layer sizes that are the default size
-	cfg.ppo.policyLayerSizes = { 512, 512, 512 };
-	cfg.ppo.criticLayerSizes = { 512, 512, 512 };
 
 	// Make the learner with the environment creation function and the config we just made
 	Learner learner = Learner(EnvCreateFunc, cfg);
