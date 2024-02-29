@@ -102,9 +102,10 @@ void DisplayReport(const RLGPC::Report& report) {
 		"Collection Time",
 		"Consumption Time",
 		"-PPO Learn Time",
-		"--PPO Value Estimate Time",
-		"--PPO Backprop Data Time",
-		"--PPO Gradient Time",
+		// TODO: These timers don't work due to non-blocking mode
+		//"--PPO Value Estimate Time",
+		//"--PPO Backprop Data Time",
+		//"--PPO Gradient Time",
 		"Total Iteration Time",
 		"",
 		"Cumulative Model Updates",
