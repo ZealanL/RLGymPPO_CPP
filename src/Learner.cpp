@@ -100,6 +100,8 @@ void DisplayReport(const RLGPC::Report& report) {
 		"Overall Steps/Second",
 		"",
 		"Collection Time",
+		"-Policy Infer Time",
+		"-Env Step Time",
 		"Consumption Time",
 		"-PPO Learn Time",
 		// TODO: These timers don't work due to non-blocking mode
