@@ -74,7 +74,7 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig config) :
 	ppo = new PPOLearner(obsSize, actionAmount, config.ppo, device);
 
 	RG_LOG("\tCreating agent manager...");
-	agentMgr = new ThreadAgentManager(ppo->policy, expBuffer, config.standardizeOBS, device);
+	agentMgr = new ThreadAgentManager(ppo->policy, expBuffer, config.standardizeOBS, config.autocastInference, device);
 
 	RG_LOG("\tCreating " << config.numThreads << " agents...");
 	agentMgr->CreateAgents(envCreateFn, config.numThreads, config.numGamesPerThread);
@@ -158,8 +158,6 @@ void RLGPC::Learner::Learn() {
 		// Add it to our experience buffer, also computing GAE in the process
 		RG_LOG("Adding experience...");
 		AddNewExperience(timesteps);
-
-		
 		
 		Timer ppoLearnTimer = {};
 		{ // Run the actual PPO learning on the experience we have collected

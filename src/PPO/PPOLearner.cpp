@@ -25,7 +25,8 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 }
 
 void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
-	RG_AUTOCAST_ON();
+	bool autocast = config.autocastLearn;
+	if (autocast) RG_AUTOCAST_ON();
 
 	int
 		numIterations = 0,
@@ -178,8 +179,8 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 
 	policyOptimizer->zero_grad();
 	valueOptimizer->zero_grad();
-
-	RG_AUTOCAST_OFF();
+	
+	if (autocast) RG_AUTOCAST_OFF();
 }
 
 // Code in here is by alireza_dizaji

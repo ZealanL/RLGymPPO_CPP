@@ -28,6 +28,7 @@ void _RunFunc(ThreadAgent* ta) {
 	int numGames = ta->numGames;
 
 	auto device = mgr->device;
+	bool autocast = mgr->autocastInference;
 
 	// Start games
 	for (auto game : games)
@@ -44,9 +45,9 @@ void _RunFunc(ThreadAgent* ta) {
 		// Infer the policy to get actions for all our agents in all our games
 		Timer policyInferTimer = {};
 		ta->inferenceMutex.lock();
-		RG_AUTOCAST_ON();
+		if (autocast) RG_AUTOCAST_ON();
 		auto actionResults = mgr->policy->GetAction(curObsTensorDevice);
-		RG_AUTOCAST_OFF();
+		if (autocast) RG_AUTOCAST_OFF();
 		ta->inferenceMutex.unlock();
 		ta->times.policyInferTime += policyInferTimer.Elapsed();
 

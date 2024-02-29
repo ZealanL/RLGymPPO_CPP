@@ -11,13 +11,13 @@ namespace RLGPC {
 		std::vector<ThreadAgent*> agents;
 		ExperienceBuffer* expBuffer;
 		std::mutex expBufferMutex = {};
-		bool standardizeOBS;
+		bool standardizeOBS, autocastInference;
 		torch::Device device;
 
 		WelfordRunningStat obsStats;
 
-		ThreadAgentManager(DiscretePolicy* policy, ExperienceBuffer* expBuffer, bool standardizeOBS, torch::Device device) : 
-			policy(policy), expBuffer(expBuffer), standardizeOBS(standardizeOBS), device(device) {}
+		ThreadAgentManager(DiscretePolicy* policy, ExperienceBuffer* expBuffer, bool standardizeOBS, bool autocastInference, torch::Device device) : 
+			policy(policy), expBuffer(expBuffer), standardizeOBS(standardizeOBS), autocastInference(autocastInference), device(device) {}
 
 		RG_NO_COPY(ThreadAgentManager);
 
