@@ -16,7 +16,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 # Add all headers and code files
 file(GLOB_RECURSE FILES_SRC "src/*.cpp" "src/*.h")
-message("Files: ${FILES_SRC}")
+
 add_executable(RLGymPPO_CPP ${FILES_SRC})
 
 # Include libtorch
