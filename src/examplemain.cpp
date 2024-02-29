@@ -69,10 +69,9 @@ int main() {
 	cfg.ppo.policyLR = 2e-3;
 	cfg.ppo.criticLR = 2e-3;
 
-	// Layer sizes that are double the default size
-	// Makes the network have ~4x the parameters
-	cfg.ppo.policyLayerSizes = { 1024, 1024, 1024 };
-	cfg.ppo.criticLayerSizes = { 1024, 1024, 1024 };
+	// Layer sizes that are the default size
+	cfg.ppo.policyLayerSizes = { 512, 512, 512 };
+	cfg.ppo.criticLayerSizes = { 512, 512, 512 };
 
 	// Make the learner with the environment creation function and the config we just made
 	Learner learner = Learner(EnvCreateFunc, cfg);
