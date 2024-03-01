@@ -34,10 +34,20 @@ namespace RLGPC {
 		float gaeLambda = 0.95f;
 		float gaeGamma = 0.99f;
 
-		std::filesystem::path checkpointLoadFolder = {}; // Set empty to disable
-		std::filesystem::path checkpointSaveFolder = "checkpoints"; // Set empty to disable
-		bool saveFolderAddUnixTimestamp = true;
-		int saveEveryTS = 1000 * 1000; // Save every timestep
+		// Set to a directory with numbered subfolders, the learner will load the subfolder with the highest number
+		// If the folder is empty or does not exist, loading is skipped
+		// Set empty to disable loading entirely
+		std::filesystem::path checkpointLoadFolder = "checkpoints"; 
+
+		// Checkpoints are saved here as timestep-numbered subfolders
+		//	e.g. a checkpoint at 20,000 steps will save to a subfolder called "20000"
+		// Set empty to disable saving
+		std::filesystem::path checkpointSaveFolder = "checkpoints"; 
+		bool saveFolderAddUnixTimestamp = false; // Appends the unix time to checkpointSaveFolder
+
+		// Save every timestep
+		// Set to zero to just use timestepsPerIteration;
+		int timestepsPerSave = 500 * 1000; 
 
 		int randomSeed = 123;
 		int checkpointsToKeep = 5; // Checkpoint storage limit before old checkpoints are deleted, set to -1 to disable

@@ -60,7 +60,11 @@ int main() {
 	cfg.ppo.batchSize = tsPerItr;
 	cfg.ppo.miniBatchSize = 100 * 1000; // Lower this if too much VRAM is being allocated
 	cfg.expBufferSize = tsPerItr * 3;
-	cfg.ppo.epochs = 1;
+	
+	// This is just set to 1 to match rlgym-ppo example
+	// If you want to train more efficiently, you should probably increase this to 10 or something
+	// It will lower the sps though
+	cfg.ppo.epochs = 1; 
 
 	// Reasonable starting entropy
 	cfg.ppo.entCoef = 0.005f;

@@ -11,11 +11,11 @@ Tensor _CopyParams(nn::Module* mod) {
 	return torch::nn::utils::parameters_to_vector(mod->parameters()).cpu();
 }
 
-RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConfig config, Device device) 
-	: config(config), device(device) {
+RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConfig _config, Device _device) 
+	: config(_config), device(_device) {
 
 	if (config.miniBatchSize == 0)
-		this->config.miniBatchSize = config.batchSize;
+		config.miniBatchSize = config.batchSize;
 
 	policy = new DiscretePolicy(obsSpaceSize, actSpaceSize, config.policyLayerSizes, device);
 	valueNet = new ValueEstimator(obsSpaceSize, config.criticLayerSizes, device);
@@ -204,8 +204,6 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 
 void RLGPC::PPOLearner::SaveTo(std::filesystem::path folderPath) {
 	RG_LOG("PPOLearner(): Saving models to: " << folderPath);
-	if (!std::filesystem::is_directory(folderPath))
-		std::filesystem::create_directories(folderPath);
 	TorchLoadSaveAll(this, folderPath, false);
 }
 

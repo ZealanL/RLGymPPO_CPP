@@ -18,14 +18,20 @@ namespace RLGPC {
 		int actionAmount;
 		torch::Device device;
 
-		uint64_t epoch = 0;
-		uint64_t totalTimesteps = 0;
-
+		uint64_t
+			totalTimesteps = 0,
+			totalEpochs = 0;
+			
 		WelfordRunningStat returnStats = WelfordRunningStat(1);
 
 		Learner(EnvCreateFn envCreateFunc, LearnerConfig config);
 		void Learn();
 		void AddNewExperience(GameTrajectory& gameTraj);
+
+		void Save();
+		void Load();
+		void SaveStats(std::filesystem::path path);
+		void LoadStats(std::filesystem::path path);
 
 		std::function<void(const Report&)> iterationCallback = NULL;
 

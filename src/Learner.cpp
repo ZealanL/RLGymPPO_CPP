@@ -1,23 +1,27 @@
 #include "Learner.h"
 
 #include <torch/cuda.h>
+#include "../libsrc/json/nlohmann/json.hpp"
 
-RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig config) :
+RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	envCreateFn(envCreateFn),
-	config(config), 
+	config(_config), 
 	device(at::Device(at::kCPU)) // Legally required to initialize this unfortunately
 {
+
+	if (config.timestepsPerSave == 0)
+		config.timestepsPerSave = config.timestepsPerIteration;
 
 	if (config.standardizeOBS)
 		RG_ERR_CLOSE("LearnerConfig.standardizeOBS has not yet been implemented, sorry");
 
 	RG_LOG("Learner::Learner():");
 	
-	if (config.saveFolderAddUnixTimestamp)
+	if (config.saveFolderAddUnixTimestamp && !config.checkpointSaveFolder.empty())
 		config.checkpointSaveFolder += "-" + std::to_string(time(0));
 
-	RG_LOG("\tCheckpoint Load Dir: ", config.checkpointLoadFolder);
-	RG_LOG("\tCheckpoint Save Dir: ", config.checkpointSaveFolder);
+	RG_LOG("\tCheckpoint Load Dir: " << config.checkpointLoadFolder);
+	RG_LOG("\tCheckpoint Save Dir: " << config.checkpointSaveFolder);
 
 	torch::manual_seed(config.randomSeed);
 
@@ -78,6 +82,104 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig config) :
 
 	RG_LOG("\tCreating " << config.numThreads << " agents...");
 	agentMgr->CreateAgents(envCreateFn, config.numThreads, config.numGamesPerThread);
+
+	if (!config.checkpointLoadFolder.empty()) {
+		Load();
+	}
+}
+
+void RLGPC::Learner::SaveStats(std::filesystem::path path) {
+	using namespace nlohmann;
+	constexpr const char* ERROR_PREFIX = "Learner::SaveStats(): ";
+
+	std::ofstream fOut(path);
+	if (!fOut.good())
+		RG_ERR_CLOSE(ERROR_PREFIX << "Can't open file at " << path);
+
+	json j = {};
+	j["cumulative_timesteps"] = totalTimesteps;
+	j["cumulative_model_updates"] = ppo->cumulativeModelUpdates;
+	j["epoch"] = totalEpochs;
+	
+	auto& rrs = j["reward_running_stats"];
+	{
+		rrs["mean"] = returnStats.runningMean;
+		rrs["var"] = returnStats.runningVariance;
+		rrs["shape"] = returnStats.shape;
+		rrs["count"] = returnStats.count;
+	}
+
+	fOut << j;
+}
+
+void RLGPC::Learner::LoadStats(std::filesystem::path path) {
+	// TODO: Repetitive code, merge repeated code into one function called from both SaveStats() and LoadStats()
+
+	using namespace nlohmann;
+	constexpr const char* ERROR_PREFIX = "Learner::LoadStats(): ";
+
+	std::ifstream fIn(path);
+	if (!fIn.good())
+		RG_ERR_CLOSE(ERROR_PREFIX << "Can't open file at " << path);
+
+	json j = json::parse(fIn);
+	totalTimesteps = j["cumulative_timesteps"];
+	ppo->cumulativeModelUpdates = j["cumulative_model_updates"];
+	totalEpochs = j["epoch"];
+	
+	auto& rrs = j["reward_running_stats"];
+	{
+		returnStats = WelfordRunningStat(rrs["shape"]);
+		returnStats.runningMean = rrs["mean"].get<FList>();
+		returnStats.runningVariance = rrs["var"].get<FList>();
+		returnStats.count = rrs["count"];
+	}
+}
+
+// Different than RLGym-PPO to show that they are not compatible
+constexpr const char* STATS_FILE_NAME = "RUNNING_STATS.json";
+
+void RLGPC::Learner::Save() {
+	if (config.checkpointSaveFolder.empty())
+		RG_ERR_CLOSE("Learner::Save(): Cannot save because config.checkpointSaveFolder is not set");
+
+	std::filesystem::path saveFolder = config.checkpointSaveFolder / std::to_string(totalTimesteps);
+	std::filesystem::create_directories(saveFolder);
+
+	RG_LOG("Saving to folder " << saveFolder << "...");
+	SaveStats(saveFolder / STATS_FILE_NAME);
+	ppo->SaveTo(saveFolder);
+	RG_LOG(" > Done.");
+}
+
+void RLGPC::Learner::Load() {
+	if (config.checkpointLoadFolder.empty())
+		RG_ERR_CLOSE("Learner::Load(): Cannot load because config.checkpointLoadFolder is not set");
+
+	RG_LOG("Loading most recent checkpoint in " << config.checkpointLoadFolder << "...");
+
+	int64_t highest = -1;
+	if (std::filesystem::is_directory(config.checkpointLoadFolder)) {
+		for (auto entry : std::filesystem::directory_iterator(config.checkpointLoadFolder)) {
+			if (entry.is_directory()) {
+				auto name = entry.path().filename();
+				try {
+					int64_t nameVal = std::stoll(name);
+					highest = RS_MAX(nameVal, highest);
+				} catch (...) {}
+			}
+		}
+	}
+
+	if (highest != -1) {
+		std::filesystem::path loadFolder = config.checkpointLoadFolder / std::to_string(highest);
+		RG_LOG(" > Loading checkpoint " << loadFolder << "...");
+		SaveStats(loadFolder / STATS_FILE_NAME);
+		ppo->LoadFrom(loadFolder, false);
+		RG_LOG(" > Done.");
+	} else {
+		RG_LOG(" > No checkpoints found, starting new model.")
+	}
 }
 
 // Prints the metrics report in a similar way to rlgym-ppo
@@ -143,6 +245,7 @@ void RLGPC::Learner::Learn() {
 	agentMgr->StartAgents();
 
 	RG_LOG("\tBeginning learning loop:");
+	int64_t tsSinceSave = 0;
 	Timer epochTimer = {};
 	while (totalTimesteps < config.timestepLimit || config.timestepLimit == 0) {
 		Report report = {};
@@ -179,6 +282,8 @@ void RLGPC::Learner::Learn() {
 			if (blockAgentInference)
 				for (auto agent : agentMgr->agents)
 					agent->inferenceMutex.unlock();
+
+			totalEpochs += config.ppo.epochs;
 		}
 
 		double ppoLearnTime = ppoLearnTimer.Elapsed();
@@ -214,6 +319,12 @@ void RLGPC::Learner::Learn() {
 			DisplayReport(report);
 			RG_LOG(DIVIDER << DIVIDER);
 			RG_LOG("\n");
+		}
+
+		tsSinceSave += timestepsCollected;
+		if (tsSinceSave > config.timestepsPerSave && !config.checkpointSaveFolder.empty()) {
+			Save();
+			tsSinceSave = 0;
 		}
 
 		// Reset everything
