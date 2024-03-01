@@ -3,7 +3,7 @@
 #include <torch/nn/utils/convert_parameters.h>
 #include <torch/nn/utils/clip_grad.h>
 #include <torch/csrc/api/include/torch/serialize.h>
-#include <ATen/autocast_mode.h>
+#include "../Util/TorchFuncs.h"
 
 using namespace torch;
 
@@ -183,51 +183,6 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	if (autocast) RG_AUTOCAST_OFF();
 }
 
-// Code in here is by alireza_dizaji
-// Found at https://discuss.pytorch.org/t/how-would-i-do-load-state-dict-in-c/76720/5
-// Modified heavily to be one function, use RG_ERR_CLOSE(), etc.
-void load_state_dict(nn::Module* model, std::filesystem::path filename) {
-	std::string errorPrefix = RS_STR("Failed to load model state dict at path ", filename, ", ");
-
-	std::ifstream input(filename, std::ios::binary);
-	std::vector<char> bytes(
-		(std::istreambuf_iterator<char>(input)),
-		(std::istreambuf_iterator<char>()));
-
-	input.close();
-	c10::Dict<IValue, IValue> weights = pickle_load(bytes).toGenericDict();
-
-	const OrderedDict<std::string, at::Tensor>& model_params = model->named_parameters();
-	std::vector<std::string> param_names;
-	for (auto const& w : model_params) {
-		param_names.push_back(w.key());
-	}
-
-	NoGradGuard no_grad;
-	for (auto const& w : weights) {
-		std::string name = w.key().toStringRef();
-		at::Tensor src = w.value().toTensor();
-
-		if (std::find(param_names.begin(), param_names.end(), name) != param_names.end()) {
-			auto dst = model_params.find(name);
-			auto dstSizes = dst->sizes();
-			auto srcSizes = src.sizes();
-
-			if (dstSizes != srcSizes) {
-				RG_ERR_CLOSE(
-					errorPrefix << "source and destination tensor sizes do not match (" << dstSizes << ", " << srcSizes << ")"
-				);
-			}
-
-			dst->copy_(src);
-		} else {
-			RG_ERR_CLOSE(
-				errorPrefix << name << " does not exist in model parameters"
-			);
-		};
-	}
-}
-
 template<typename T>
 void TorchLoadSave(T* obj, std::filesystem::path path, bool load) {
 	if (load) {
@@ -260,8 +215,8 @@ void RLGPC::PPOLearner::LoadFrom(std::filesystem::path folderPath, bool isFromPy
 		RG_ERR_CLOSE("PPOLearner:LoadFrom(): Path " << folderPath << " is not a valid directory");
 
 	if (isFromPython) {
-		load_state_dict(policy, folderPath / "PPO_POLICY.pt");
-		load_state_dict(valueNet, folderPath / "PPO_VALUE_NET.pt");
+		TorchFuncs::LoadStateDict(policy, folderPath / "PPO_POLICY.pt");
+		TorchFuncs::LoadStateDict(valueNet, folderPath / "PPO_VALUE_NET.pt");
 
 		// TODO: Load optimizer
 	} else {

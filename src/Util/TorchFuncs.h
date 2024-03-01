@@ -1,6 +1,8 @@
 #pragma once
 #include "../Lists.h"
 
+#include <torch/nn/Module.h>
+
 namespace RLGPC {
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/util/torch_functions.py
 	namespace TorchFuncs {
@@ -12,5 +14,7 @@ namespace RLGPC {
 
 		// torch::cat({a, b}, 0) but returns b.clone() if a is undefined
 		torch::Tensor ConcatSafe(torch::Tensor a, torch::Tensor b);
+
+		void LoadStateDict(torch::nn::Module* mod, std::filesystem::path path);
 	}
 }
