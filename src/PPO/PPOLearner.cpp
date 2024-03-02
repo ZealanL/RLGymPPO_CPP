@@ -183,23 +183,83 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	if (autocast) RG_AUTOCAST_OFF();
 }
 
-template<typename T>
-void TorchLoadSave(T* obj, std::filesystem::path path, bool load) {
+// Get sizes of all parameters in a sequence
+std::vector<uint64_t> GetSeqSizes(torch::nn::Sequential& seq) {
+	std::vector<uint64_t> result = {};
+
+	for (int i = 0; i < seq->size(); i++)
+		for (auto param : seq[i]->parameters())
+			result.push_back(param.numel());
+
+	return result;
+}
+
+void TorchLoadSaveSeq(torch::nn::Sequential seq, std::filesystem::path path, c10::Device device, bool load) {
 	if (load) {
 		auto streamIn = std::ifstream(path, std::ios::binary);
 		streamIn >> std::noskipws;
-		torch::load(*obj, streamIn);
+		auto sizesBefore = GetSeqSizes(seq);
+		torch::load(seq, streamIn, device);
+		auto sizesAfter = GetSeqSizes(seq);
+		if (!std::equal(sizesBefore.begin(), sizesBefore.end(), sizesAfter.begin(), sizesAfter.end())) {
+			std::stringstream stream;
+			stream << "Saved model has different size than current model, cannot load model from " << path << ":\n";
+			
+			for (int i = 0; i < 2; i++) {
+				stream << " > " << (i ? "Saved model:   [ " : "Current model: [ ");
+				for (uint64_t size : (i ? sizesAfter : sizesBefore))
+					stream << size << ' ';
+
+				stream << " ]";
+				if (i == 0)
+					stream << ",\n";
+			}
+
+			RG_ERR_CLOSE(stream.str());
+		}
+
 	} else {
 		auto streamOut = std::ofstream(path, std::ios::binary);
-		torch::save(*obj, streamOut);
+		torch::save(seq, streamOut);
 	}
 }
 
 void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPath, bool load) {
-	TorchLoadSave(&learner->policy->seq, folderPath / "PPO_POLICY.pt", load);
-	TorchLoadSave(&learner->valueNet->seq, folderPath / "PPO_VALUE_NET.pt", load);
-	TorchLoadSave(&(learner->policyOptimizer->parameters()), folderPath / "PPO_POLICY_OPTIMIZER.pt", load);
-	TorchLoadSave(&(learner->valueOptimizer->parameters()), folderPath / "PPO_VALUE_NET_OPTIMIZER.pt", load);
+
+	constexpr const char* FILE_NAMES[] = {
+		"PPO_POLICY.lt",
+		"PPO_VALUE_NET.lt",
+
+		"PPO_POLICY_OPTIMIZER.lt",
+		"PPO_VALUE_NET_OPTIMIZER.lt",
+	};
+
+	if (load) {
+		for (const char* fileName : FILE_NAMES)
+			if (!std::filesystem::exists(folderPath / fileName))
+				RG_ERR_CLOSE("PPOLearner: Failed to find file \"" << fileName << "\" in " << folderPath << ".")
+	}
+
+	TorchLoadSaveSeq(learner->policy->seq, folderPath / FILE_NAMES[0], learner->device, load);
+	TorchLoadSaveSeq(learner->valueNet->seq, folderPath / FILE_NAMES[1], learner->device, load);
+
+	if (load) {
+		torch::serialize::InputArchive policyOptArchive;
+		policyOptArchive.load_from((folderPath / FILE_NAMES[2]).string(), learner->device);
+		learner->policyOptimizer->load(policyOptArchive);
+
+		torch::serialize::InputArchive valueOptArchive;
+		valueOptArchive.load_from((folderPath / FILE_NAMES[3]).string(), learner->device);
+		learner->valueOptimizer->load(valueOptArchive);
+	} else {
+		torch::serialize::OutputArchive policyOptArchive;
+		learner->policyOptimizer->save(policyOptArchive);
+		policyOptArchive.save_to((folderPath / FILE_NAMES[2]).string());
+
+		torch::serialize::OutputArchive valueOptArchive;
+		learner->valueOptimizer->save(valueOptArchive);
+		valueOptArchive.save_to((folderPath / FILE_NAMES[3]).string());
+	}
 }
 
 void RLGPC::PPOLearner::SaveTo(std::filesystem::path folderPath) {

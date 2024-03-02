@@ -28,7 +28,6 @@ namespace RLGPC {
 			PPOLearnerConfig config, torch::Device device
 		);
 		
-
 		void Learn(ExperienceBuffer* expBuffer, Report& report);
 
 		void SaveTo(std::filesystem::path folderPath);
