@@ -8,6 +8,8 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	config(_config), 
 	device(at::Device(at::kCPU)) // Legally required to initialize this unfortunately
 {
+	torch::set_num_interop_threads(1);
+	torch::set_num_threads(1);
 
 	if (config.timestepsPerSave == 0)
 		config.timestepsPerSave = config.timestepsPerIteration;
@@ -257,7 +259,7 @@ void RLGPC::Learner::Learn() {
 		Report report = {};
 
 		// Collect the desired timesteps from our agents
-;		GameTrajectory timesteps = agentMgr->CollectTimesteps(config.timestepsPerIteration);
+		GameTrajectory timesteps = agentMgr->CollectTimesteps(config.timestepsPerIteration);
 		double collectionTime = epochTimer.Elapsed();
 		uint64_t timestepsCollected = timesteps.size; // Use actual size instead of target size
 
@@ -265,7 +267,7 @@ void RLGPC::Learner::Learn() {
 
 		// Add it to our experience buffer, also computing GAE in the process
 		AddNewExperience(timesteps);
-		
+
 		Timer ppoLearnTimer = {};
 		{ // Run the actual PPO learning on the experience we have collected
 			
