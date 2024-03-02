@@ -23,6 +23,12 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("\tCheckpoint Load Dir: " << config.checkpointLoadFolder);
 	RG_LOG("\tCheckpoint Save Dir: " << config.checkpointSaveFolder);
 
+	if (config.sendMetrics) {
+		metricSender = new MetricSender(config.metricsRunName);
+	} else {
+		metricSender = NULL;
+	}
+
 	torch::manual_seed(config.randomSeed);
 
 	if (
@@ -83,9 +89,8 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("\tCreating " << config.numThreads << " agents...");
 	agentMgr->CreateAgents(envCreateFn, config.numThreads, config.numGamesPerThread);
 
-	if (!config.checkpointLoadFolder.empty()) {
+	if (!config.checkpointLoadFolder.empty())
 		Load();
-	}
 }
 
 void RLGPC::Learner::SaveStats(std::filesystem::path path) {
@@ -109,7 +114,8 @@ void RLGPC::Learner::SaveStats(std::filesystem::path path) {
 		rrs["count"] = returnStats.count;
 	}
 
-	fOut << j;
+	std::string jStr = j.dump(4);
+	fOut << jStr;
 }
 
 void RLGPC::Learner::LoadStats(std::filesystem::path path) {
@@ -251,7 +257,6 @@ void RLGPC::Learner::Learn() {
 		Report report = {};
 
 		// Collect the desired timesteps from our agents
-		RG_LOG("Collecting timesteps...");
 ;		GameTrajectory timesteps = agentMgr->CollectTimesteps(config.timestepsPerIteration);
 		double collectionTime = epochTimer.Elapsed();
 		uint64_t timestepsCollected = timesteps.size; // Use actual size instead of target size
@@ -259,7 +264,6 @@ void RLGPC::Learner::Learn() {
 		totalTimesteps += timestepsCollected;
 
 		// Add it to our experience buffer, also computing GAE in the process
-		RG_LOG("Adding experience...");
 		AddNewExperience(timesteps);
 		
 		Timer ppoLearnTimer = {};
@@ -308,6 +312,7 @@ void RLGPC::Learner::Learn() {
 			report["Cumulative Timesteps"] = totalTimesteps;
 		}
 
+		// Call iteration callback
 		if (iterationCallback)
 			iterationCallback(report);
 
@@ -321,11 +326,17 @@ void RLGPC::Learner::Learn() {
 			RG_LOG("\n");
 		}
 
+		// Update metric sender
+		if (config.sendMetrics)
+			metricSender->Send(report);
+
+		// Save if needed
 		tsSinceSave += timestepsCollected;
 		if (tsSinceSave > config.timestepsPerSave && !config.checkpointSaveFolder.empty()) {
 			Save();
 			tsSinceSave = 0;
 		}
+
 
 		// Reset everything
 		agentMgr->ResetMetrics();
@@ -338,6 +349,8 @@ void RLGPC::Learner::Learn() {
 
 void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 	RG_NOGRAD;
+
+	RG_LOG("Adding experience...");
 
 	gameTraj.RemoveCapacity();
 	auto& trajData = gameTraj.data;

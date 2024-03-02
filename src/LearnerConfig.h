@@ -53,5 +53,10 @@ namespace RLGPC {
 		int checkpointsToKeep = 5; // Checkpoint storage limit before old checkpoints are deleted, set to -1 to disable
 		int shmBufferSize = 8 * 1024;
 		LearnerDeviceType deviceType = LearnerDeviceType::AUTO; // Auto will use your CUDA GPU if available
+
+		// Send metrics to the python metrics receiver
+		// The receiver can then log them to wandb or whatever
+		bool sendMetrics = true;
+		std::string metricsRunName = {}; // Run name for the python metrics receiver
 	};
 }

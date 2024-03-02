@@ -2,6 +2,7 @@
 #include "PPO/PPOLearner.h"
 #include "Threading/ThreadAgentManager.h"
 #include "Util/WelfordRunningStat.h"
+#include "Util/MetricSender.h"
 #include "LearnerConfig.h"
 
 namespace RLGPC {
@@ -9,11 +10,14 @@ namespace RLGPC {
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/learner.py
 	class Learner {
 	public:
+		LearnerConfig config;
+
 		PPOLearner* ppo;
 		ThreadAgentManager* agentMgr;
 		ExperienceBuffer* expBuffer;
 		EnvCreateFn envCreateFn;
-		LearnerConfig config;
+		MetricSender* metricSender;
+
 		int obsSize;
 		int actionAmount;
 		torch::Device device;

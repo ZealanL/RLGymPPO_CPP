@@ -9,6 +9,7 @@ void RLGPC::ThreadAgentManager::CreateAgents(EnvCreateFn func, int amount, int g
 
 RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amount) {
 
+	RG_LOG("Collecting timesteps...");
 	// We will just wait in this loop until our agents have collected enough total timesteps
 	while (true) {
 		uint64_t totalSteps = 0;
@@ -32,6 +33,8 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 
 	// Our agents have collected the timesteps we need
 	 
+	RG_LOG("Concatenating timesteps...");
+
 	// Combine all of their trajectories into one long trajectory
 	// We will return this giant trajectory to the learner, for both computing GAE and 
 	GameTrajectory result = {};
@@ -46,6 +49,7 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 					//	or the data got cut short, called "truncated"
 					traj.data.truncateds[traj.size - 1] = (traj.data.dones[traj.size - 1].item<float>() == 0);
 
+					// TODO: Just do a mass-concat instead of doing them one at a time
 					result.Append(traj);
 					traj.Clear();
 				} else {
