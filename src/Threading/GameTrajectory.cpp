@@ -23,6 +23,28 @@ namespace RLGPC {
 		assert(data.begin()->size(0) == capacity);
 	}
 
+	void GameTrajectory::MultiAppend(const std::vector<GameTrajectory>& others) {
+
+		bool alreadyHaveData = size != 0;
+
+		for (int i = 0; i < TrajectoryTensors::TENSOR_AMOUNT; i++) {
+			std::vector<torch::Tensor> catList;
+			catList.reserve(others.size());
+
+			if (alreadyHaveData)
+				catList.push_back(this->data[i]); // We need to start with our own data
+
+			for (auto& otherTraj : others) {
+				// Remove capacity
+				torch::Tensor slicedData = otherTraj.data[i].slice(0, 0, otherTraj.size); 
+				catList.push_back(slicedData);
+			}
+			data[i] = torch::cat(catList);
+		}
+		
+		size = capacity = data[0].size(0);
+	}
+
 	void GameTrajectory::RemoveCapacity() {
 		if (capacity > size)
 			for (torch::Tensor& t : data)

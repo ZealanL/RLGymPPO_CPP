@@ -37,7 +37,8 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 
 	// Combine all of their trajectories into one long trajectory
 	// We will return this giant trajectory to the learner, for both computing GAE and 
-	GameTrajectory result = {};
+	size_t totalTimesteps = 0;
+	std::vector<GameTrajectory> trajs;
 	for (auto agent : agents) {
 		agent->trajMutex.lock();
 		for (auto& trajSet : agent->trajectories) {
@@ -48,9 +49,8 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 					// This happens either because the environment reset (i.e. goal scored), called "done",
 					//	or the data got cut short, called "truncated"
 					traj.data.truncateds[traj.size - 1] = (traj.data.dones[traj.size - 1].item<float>() == 0);
-
-					// TODO: Just do a mass-concat instead of doing them one at a time
-					result.Append(traj);
+					trajs.push_back(traj);
+					totalTimesteps += traj.size;
 					traj.Clear();
 				} else {
 					// Kinda lame but does happen
@@ -59,6 +59,13 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 		}
 		agent->trajMutex.unlock();
 	}
+
+	GameTrajectory result = {};
+	result.MultiAppend(trajs);
+
+	// Being extra paranoid in case something goes wrong
+	if (result.size != totalTimesteps)
+		RG_ERR_CLOSE("ThreadAgentManager::CollectTimesteps(): Agent timestep concatenation failed (" << result.size << " != " << totalTimesteps << ")")
 
 	return result;
 }

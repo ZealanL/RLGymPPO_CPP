@@ -11,25 +11,28 @@ namespace RLGPC {
 			nextStates,
 			dones,
 			truncateds;
-		torch::Tensor* begin() {
-			return &states;
-		}
+		constexpr static size_t TENSOR_AMOUNT = 7; // So sad I can't use sizeof() or offsetof() here
 
-		torch::Tensor* end() {
-			return &truncateds + 1;
-		}
+		torch::Tensor* begin() { return &states; }
+		const torch::Tensor* begin() const { return &states; }
+		torch::Tensor* end() { return &states + TENSOR_AMOUNT; }
+		const torch::Tensor* end() const { return &states + TENSOR_AMOUNT; }
+
+		torch::Tensor& operator[](size_t index) { return *(begin() + index); }
+		const torch::Tensor& operator[](size_t index) const { return *(begin() + index); }
 	};
 
 	// A container for the timestep data of a specific agent
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/batched_agents/batched_trajectory.py
 	// Unlike rlgym-ppo, this has a capacity allocation system like std::vector
-	// This makes adding single steps to a trajectory substantially faster
+	// This class is designed to append single steps or merge multiple trajectories as fast as possible
 	struct GameTrajectory {
 
 		TrajectoryTensors data;
 		size_t size = 0, capacity = 0;
 
 		void Append(GameTrajectory& other);
+		void MultiAppend(const std::vector<GameTrajectory>& others); // Much faster than spamming Append()
 
 		void RemoveCapacity();
 
