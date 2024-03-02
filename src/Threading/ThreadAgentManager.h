@@ -12,12 +12,13 @@ namespace RLGPC {
 		ExperienceBuffer* expBuffer;
 		std::mutex expBufferMutex = {};
 		bool standardizeOBS, autocastInference;
+		uint64_t maxCollect;
 		torch::Device device;
 
 		WelfordRunningStat obsStats;
 
-		ThreadAgentManager(DiscretePolicy* policy, ExperienceBuffer* expBuffer, bool standardizeOBS, bool autocastInference, torch::Device device) : 
-			policy(policy), expBuffer(expBuffer), standardizeOBS(standardizeOBS), autocastInference(autocastInference), device(device) {}
+		ThreadAgentManager(DiscretePolicy* policy, ExperienceBuffer* expBuffer, bool standardizeOBS, bool autocastInference, uint64_t maxCollect, torch::Device device) : 
+			policy(policy), expBuffer(expBuffer), standardizeOBS(standardizeOBS), autocastInference(autocastInference), maxCollect(maxCollect), device(device) {}
 
 		RG_NO_COPY(ThreadAgentManager);
 

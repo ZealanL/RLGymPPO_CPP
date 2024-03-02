@@ -40,13 +40,15 @@ namespace RLGPC {
 		Times times = {}; // TODO: Convert to use Report instead
 
 		std::vector<std::vector<GameTrajectory>> trajectories = {};
+		std::atomic<uint64_t> stepsCollected = 0;
+		uint64_t maxCollect;
 		std::mutex trajMutex = {};
 
 		// Lock this to stop the agent from inferencing
 		// Useful if agent inference is blocking gpu-intensive learning
 		std::mutex inferenceMutex = {};
 
-		ThreadAgent(void* manager, int numGames, EnvCreateFn envCreateFn);
+		ThreadAgent(void* manager, int numGames, uint64_t maxCollect, EnvCreateFn envCreateFn);
 
 		RG_NO_COPY(ThreadAgent);
 

@@ -86,7 +86,12 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	ppo = new PPOLearner(obsSize, actionAmount, config.ppo, device);
 
 	RG_LOG("\tCreating agent manager...");
-	agentMgr = new ThreadAgentManager(ppo->policy, expBuffer, config.standardizeOBS, config.autocastInference, device);
+	agentMgr = new ThreadAgentManager(
+		ppo->policy, expBuffer, 
+		config.standardizeOBS, config.autocastInference, 
+		(uint64_t)(config.timestepsPerIteration * 1.5f),
+		device
+	);
 
 	RG_LOG("\tCreating " << config.numThreads << " agents...");
 	agentMgr->CreateAgents(envCreateFn, config.numThreads, config.numGamesPerThread);
@@ -338,7 +343,6 @@ void RLGPC::Learner::Learn() {
 			Save();
 			tsSinceSave = 0;
 		}
-
 
 		// Reset everything
 		agentMgr->ResetMetrics();

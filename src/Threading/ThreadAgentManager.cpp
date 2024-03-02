@@ -2,7 +2,7 @@
 
 void RLGPC::ThreadAgentManager::CreateAgents(EnvCreateFn func, int amount, int gamesPerAgent) {
 	for (int i = 0; i < amount; i++) {
-		auto agent = new ThreadAgent(this, gamesPerAgent, func);
+		auto agent = new ThreadAgent(this, gamesPerAgent, maxCollect / amount, func);
 		agents.push_back(agent);
 	}
 }
@@ -14,9 +14,7 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 	while (true) {
 		uint64_t totalSteps = 0;
 		for (auto agent : agents)
-			for (auto& trajSet : agent->trajectories)
-				for (auto& traj : trajSet)
-					totalSteps += traj.size;
+			totalSteps += agent->stepsCollected;
 
 		if (totalSteps >= amount)
 			break;
@@ -57,6 +55,7 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 				}
 			}
 		}
+		agent->stepsCollected = 0;
 		agent->trajMutex.unlock();
 	}
 

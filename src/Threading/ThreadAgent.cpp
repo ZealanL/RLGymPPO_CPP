@@ -38,6 +38,11 @@ void _RunFunc(ThreadAgent* ta) {
 	torch::Tensor curObsTensor = MakeGamesOBSTensor(games);
 
 	while (ta->shouldRun) {
+
+		// Don't run if we reached our step limit
+		while (ta->stepsCollected > ta->maxCollect)
+			std::this_thread::yield();
+
 		// Move our current OBS tensor to the device we run the policy on
 		// This conversion time is not counted as a part of policy inference time
 		torch::Tensor curObsTensorDevice = curObsTensor.to(device, true);
@@ -107,6 +112,7 @@ void _RunFunc(ThreadAgent* ta) {
 				);
 			}
 			
+			ta->stepsCollected += numPlayers;
 			actionsOffset += numPlayers;
 		}
 		ta->trajMutex.unlock();
@@ -121,8 +127,8 @@ void _RunFunc(ThreadAgent* ta) {
 	ta->isRunning = false;
 }
 
-RLGPC::ThreadAgent::ThreadAgent(void* manager, int numGames, EnvCreateFn envCreateFn)
-	: _manager(manager), numGames(numGames) {
+RLGPC::ThreadAgent::ThreadAgent(void* manager, int numGames, uint64_t maxCollect, EnvCreateFn envCreateFn)
+	: _manager(manager), numGames(numGames), maxCollect(maxCollect) {
 
 	trajectories.resize(numGames);
 	for (int i = 0; i < numGames; i++) {
