@@ -198,8 +198,20 @@ void TorchLoadSaveSeq(torch::nn::Sequential seq, std::filesystem::path path, c10
 	if (load) {
 		auto streamIn = std::ifstream(path, std::ios::binary);
 		streamIn >> std::noskipws;
+
 		auto sizesBefore = GetSeqSizes(seq);
-		torch::load(seq, streamIn, device);
+
+		try {
+			torch::load(seq, streamIn, device);
+		} catch (std::exception& e) {
+			RG_ERR_CLOSE(
+				"Failed to load model, checkpoint may be corrupt.\n" <<
+				"Exception: " << e.what()
+			);
+		}
+
+		// Torch will happily load in a model of a totally different size, then we will crash when we try to use it
+		// So we need to manually check if it is the same size
 		auto sizesAfter = GetSeqSizes(seq);
 		if (!std::equal(sizesBefore.begin(), sizesBefore.end(), sizesAfter.begin(), sizesAfter.end())) {
 			std::stringstream stream;
@@ -244,13 +256,20 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 	TorchLoadSaveSeq(learner->valueNet->seq, folderPath / FILE_NAMES[1], learner->device, load);
 
 	if (load) {
-		torch::serialize::InputArchive policyOptArchive;
-		policyOptArchive.load_from((folderPath / FILE_NAMES[2]).string(), learner->device);
-		learner->policyOptimizer->load(policyOptArchive);
+		try {
+			torch::serialize::InputArchive policyOptArchive;
+			policyOptArchive.load_from((folderPath / FILE_NAMES[2]).string(), learner->device);
+			learner->policyOptimizer->load(policyOptArchive);
 
-		torch::serialize::InputArchive valueOptArchive;
-		valueOptArchive.load_from((folderPath / FILE_NAMES[3]).string(), learner->device);
-		learner->valueOptimizer->load(valueOptArchive);
+			torch::serialize::InputArchive valueOptArchive;
+			valueOptArchive.load_from((folderPath / FILE_NAMES[3]).string(), learner->device);
+			learner->valueOptimizer->load(valueOptArchive);
+		} catch (std::exception& e) {
+			RG_ERR_CLOSE(
+				"Failed to load optimizers, exception: " << e.what() << "\n" <<
+				"Checkpoint may be corrupt."
+			);
+		}
 	} else {
 		torch::serialize::OutputArchive policyOptArchive;
 		learner->policyOptimizer->save(policyOptArchive);
