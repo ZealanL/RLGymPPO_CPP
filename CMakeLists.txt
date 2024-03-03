@@ -30,6 +30,9 @@ set_target_properties(RLGymPPO_CPP PROPERTIES CXX_STANDARD 20)
 add_subdirectory(RLGymSim_CPP)
 target_link_libraries(RLGymPPO_CPP RLGymSim_CPP)
 
+# Make our python files copy over to our build dir
+configure_file("./python_scripts/metrics_receiver.py" "./python_scripts/metrics_receiver.py" COPY)
+
 # MSVC sometimes won't link to the libtorch DLLs unless you do this
 # This is also from https://pytorch.org/cppdocs/installing.html#minimal-example
 if (MSVC)

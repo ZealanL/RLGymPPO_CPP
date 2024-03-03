@@ -173,10 +173,13 @@ namespace simple_cpp_sockets {
 			// This is a blocking call
 			ssize_t recv_len = recvfrom(m_socket, message_buffer, buffer_size, 0, reinterpret_cast<sockaddr*>(&client), &slen);
 			if (recv_len == SOCKET_ERROR) {
-
+				
 #ifdef WIN32
+				std::string msg = "UDPServer::listen() failed with code " + std::to_string(WSAGetLastError());
+				throw std::exception(msg.c_str());
 				//std::cout << "UDPServer::listen(): Receive Data error:" << WSAGetLastError() << "!" << std::endl;
 #else
+				throw std::exception("UDPServer::listen() failed");
 				//std::cout << "UDPServer::listen(): Receive Data error!" << std::endl;
 #endif
 			} else {

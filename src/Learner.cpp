@@ -25,11 +25,8 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("\tCheckpoint Load Dir: " << config.checkpointLoadFolder);
 	RG_LOG("\tCheckpoint Save Dir: " << config.checkpointSaveFolder);
 
-	if (config.sendMetrics) {
-		metricSender = new MetricSender(config.metricsRunName);
-	} else {
-		metricSender = NULL;
-	}
+	if (config.sendMetrics)
+		MetricSender::Init(config.metricsProjectName, config.metricsGroupName, config.metricsRunName);
 
 	torch::manual_seed(config.randomSeed);
 
@@ -300,10 +297,15 @@ void RLGPC::Learner::Learn() {
 		double ppoLearnTime = ppoLearnTimer.Elapsed();
 		double epochTime = epochTimer.Elapsed();
 		epochTimer.Reset(); // Reset now otherwise we can have issues with the timer and thread input-locking
+
 		double consumptionTime = epochTime - collectionTime;
 
 		// Get all metrics from agent manager
 		agentMgr->GetMetrics(report);
+
+		// Don't just measure the time we waited for to collect or steps
+		// Because of collection during learn, this time could be near-zero, resulting in SPS showing some crazy number
+		collectionTime = RS_MAX(collectionTime, agentMgr->lastIterationTime);
 
 		{ // Add timers to report
 			report["Total Iteration Time"] = epochTime;
@@ -335,7 +337,7 @@ void RLGPC::Learner::Learn() {
 
 		// Update metric sender
 		if (config.sendMetrics)
-			metricSender->Send(report);
+			MetricSender::Send(report);
 
 		// Save if needed
 		tsSinceSave += timestepsCollected;

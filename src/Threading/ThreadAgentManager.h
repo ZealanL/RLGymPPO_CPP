@@ -3,6 +3,7 @@
 #include "../PPO/ExperienceBuffer.h"
 #include "../Util/Report.h"
 #include "../Util/WelfordRunningStat.h"
+#include "../Util/Timer.h"
 
 namespace RLGPC {
 	class ThreadAgentManager {
@@ -15,6 +16,8 @@ namespace RLGPC {
 		uint64_t maxCollect;
 		torch::Device device;
 
+		Timer iterationTimer = {};
+		double lastIterationTime = 0;
 		WelfordRunningStat obsStats;
 
 		ThreadAgentManager(DiscretePolicy* policy, ExperienceBuffer* expBuffer, bool standardizeOBS, bool autocastInference, uint64_t maxCollect, torch::Device device) : 

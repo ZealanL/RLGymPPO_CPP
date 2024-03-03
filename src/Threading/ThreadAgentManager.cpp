@@ -1,4 +1,5 @@
 #include "ThreadAgentManager.h"
+#include "../Util/Timer.h"
 
 void RLGPC::ThreadAgentManager::CreateAgents(EnvCreateFn func, int amount, int gamesPerAgent) {
 	for (int i = 0; i < amount; i++) {
@@ -64,8 +65,10 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 
 	// Being extra paranoid in case something goes wrong
 	if (result.size != totalTimesteps)
-		RG_ERR_CLOSE("ThreadAgentManager::CollectTimesteps(): Agent timestep concatenation failed (" << result.size << " != " << totalTimesteps << ")")
+		RG_ERR_CLOSE("ThreadAgentManager::CollectTimesteps(): Agent timestep concatenation failed (" << result.size << " != " << totalTimesteps << ")");
 
+	lastIterationTime = iterationTimer.Elapsed();
+	iterationTimer.Reset();
 	return result;
 }
 

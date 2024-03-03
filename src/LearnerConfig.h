@@ -57,6 +57,9 @@ namespace RLGPC {
 		// Send metrics to the python metrics receiver
 		// The receiver can then log them to wandb or whatever
 		bool sendMetrics = true;
-		std::string metricsRunName = {}; // Run name for the python metrics receiver
+		std::string metricsProjectName = "rlgymppo-cpp"; // Run name for the python metrics receiver
+		std::string metricsGroupName = "unnamed-runs"; // Run name for the python metrics receiver
+		std::string metricsRunName = "rlgymppo-cpp-run"; // Run name for the python metrics receiver
+		
 	};
 }

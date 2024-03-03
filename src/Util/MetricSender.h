@@ -1,27 +1,19 @@
 #pragma once
 #include "Report.h"
 
-// Forward declaration
-namespace simple_cpp_sockets { class UDPClient; }
-
 namespace RLGPC {
-	struct MetricSender {
+	namespace MetricSender {
+		constexpr static int
+			PORT_CPP = 3942,
+			PORT_PY = 3943;
+		constexpr static uint32_t
+			CONNECT_CODE = 0x1AB80D60,
+			COMM_PREFIX  = 0x1AB80D61,
+			ACK_PREFIX   = 0x1AB80D62;
 
-		constexpr static int PORT = 3942;
-		constexpr static uint32_t COMM_PREFIX = 0x1AB80D64;
-
-		std::string runName;
-		simple_cpp_sockets::UDPClient* udpClient;
-		uint32_t lastMsgID = 0;
-
-		MetricSender(std::string runName = {});
+		void Init(std::string projectName = {}, std::string groupName = {}, std::string runName = {});
+		bool IsConnected();
 
 		void Send(const Report& report);
-
-		RG_NO_COPY(MetricSender);
-
-		~MetricSender() {
-			delete udpClient;
-		}
 	};
 }
