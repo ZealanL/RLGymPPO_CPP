@@ -42,10 +42,10 @@ namespace RLGPC {
 		std::vector<std::vector<GameTrajectory>> trajectories = {};
 		std::atomic<uint64_t> stepsCollected = 0;
 		uint64_t maxCollect;
-
-		// Lock to prevent stepping
-		std::mutex stepMutex = {};
 		
+		// Lock to prevent game stepping
+		std::mutex gameStepMutex = {};
+
 		// Lock to modify trajectories
 		std::mutex trajMutex = {};
 

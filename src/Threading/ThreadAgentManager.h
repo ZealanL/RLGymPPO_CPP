@@ -16,6 +16,8 @@ namespace RLGPC {
 		uint64_t maxCollect;
 		torch::Device device;
 
+		bool disableCollection = false; // Prevents new steps from being started
+
 		Timer iterationTimer = {};
 		double lastIterationTime = 0;
 		WelfordRunningStat obsStats;

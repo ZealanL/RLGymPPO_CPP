@@ -328,15 +328,16 @@ void RLGPC::Learner::Learn() {
 		AddNewExperience(timesteps);
 
 		Timer ppoLearnTimer = {};
+
+		// Stop agents from inferencing during learn if we are not on CPU
+		// This is because learning is very GPU intensive, and letting iterations collect during that time slows it down
+		// On CPU, learning is its own thread, it's better to keep collecting
+		bool blockAgentInferDuringLearn = !device.is_cpu(); 
 		{ // Run the actual PPO learning on the experience we have collected
 			
 			RG_LOG("Learning...");
-			// Stop agents from inferencing if we are not on CPU
-			// Otherwise PPO learn will take substantial performance hits
-			bool blockAgentInference = !device.is_cpu();
-			if (blockAgentInference)
-				for (auto agent : agentMgr->agents)
-					agent->stepMutex.lock();
+			if (blockAgentInferDuringLearn)
+				agentMgr->disableCollection = true;
 
 			try {
 				ppo->Learn(expBuffer, report);
@@ -344,30 +345,32 @@ void RLGPC::Learner::Learn() {
 				RG_ERR_CLOSE("Exception during PPOLearner::Learn(): " << e.what());
 			}
 
-			if (blockAgentInference)
-				for (auto agent : agentMgr->agents)
-					agent->stepMutex.unlock();
+			if (blockAgentInferDuringLearn)
+				agentMgr->disableCollection = false;
 
 			totalEpochs += config.ppo.epochs;
 		}
 
 		double ppoLearnTime = ppoLearnTimer.Elapsed();
-		double epochTime = epochTimer.Elapsed();
+		double relEpochTime = epochTimer.Elapsed();
 		epochTimer.Reset(); // Reset now otherwise we can have issues with the timer and thread input-locking
 
-		double consumptionTime = epochTime - relCollectionTime;
+		double consumptionTime = relEpochTime - relCollectionTime;
 
 		// Get all metrics from agent manager
 		agentMgr->GetMetrics(report);
 
 		// Don't just measure the time we waited for to collect for steps
 		// Because of collection during learn, this time could be near-zero, resulting in SPS showing some crazy number
-		double trueCollectionTime = agentMgr->lastIterationTime;
-		if (!device.is_cpu())
-			trueCollectionTime -= ppoLearnTime; // On GPU, PPO Learn blocks inference
+		double trueCollectionTime = RS_MAX(agentMgr->lastIterationTime, relCollectionTime);
+		if (blockAgentInferDuringLearn)
+			trueCollectionTime -= ppoLearnTime; // We couldn't have been collecting during this time
+
+		// Fix same issue with epoch time
+		double trueEpochTime = RS_MAX(relEpochTime, trueCollectionTime);
 
 		{ // Add timers to report
-			report["Total Iteration Time"] = epochTime;
+			report["Total Iteration Time"] = relEpochTime;
 
 			report["Collection Time"] = relCollectionTime;
 			report["Consumption Time"] = consumptionTime;
@@ -376,14 +379,16 @@ void RLGPC::Learner::Learn() {
 
 		{ // Add timestep data to report
 			report["Collected Steps/Second"] = (int64_t)(timestepsCollected / trueCollectionTime);
-			report["Overall Steps/Second"] = (int64_t)(timestepsCollected / epochTime);
+			report["Overall Steps/Second"] = (int64_t)(timestepsCollected / trueEpochTime);
 			report["Timesteps Collected"] = timestepsCollected;
 			report["Cumulative Timesteps"] = totalTimesteps;
 		}
 
 		// Call iteration callback
-		if (iterationCallback)
+		if (iterationCallback) {
+			RG_LOG("Calling iteration callback...");
 			iterationCallback(this, report);
+		}
 
 		{ // Print results
 			constexpr const char* DIVIDER = "======================";
@@ -475,10 +480,10 @@ std::vector<RLGPC::Report> RLGPC::Learner::GetAllGameMetrics() {
 	std::vector<Report> reports = {};
 
 	for (auto agent : agentMgr->agents) {
-		agent->stepMutex.lock();
+		agent->gameStepMutex.lock();
 		for (auto game : agent->gameInsts)
 			reports.push_back(game->_metrics);
-		agent->stepMutex.unlock();
+		agent->gameStepMutex.unlock();
 	}
 
 	return reports;

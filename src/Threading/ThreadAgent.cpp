@@ -43,7 +43,8 @@ void _RunFunc(ThreadAgent* ta) {
 		while (ta->stepsCollected > ta->maxCollect)
 			std::this_thread::yield();
 
-		ta->stepMutex.lock();
+		while (mgr->disableCollection)
+			std::this_thread::yield();
 
 		// Move our current OBS tensor to the device we run the policy on
 		// This conversion time is not counted as a part of policy inference time
@@ -59,6 +60,7 @@ void _RunFunc(ThreadAgent* ta) {
 
 		// Step the gym with the actions we got
 		Timer gymStepTimer = {};
+		ta->gameStepMutex.lock();
 		float avgRew = 0;
 		auto stepResults = new RLGSC::Gym::StepResult[numGames];
 		int actionsOffset = 0;
@@ -74,6 +76,7 @@ void _RunFunc(ThreadAgent* ta) {
 
 			actionsOffset += numPlayers;
 		}
+		ta->gameStepMutex.unlock();
 
 		// Make sure we got the end of actions
 		// Otherwise there's a wrong number of actions for whatever reason
@@ -123,8 +126,6 @@ void _RunFunc(ThreadAgent* ta) {
 		curObsTensor = nextObsTensor;
 
 		delete[] stepResults;
-
-		ta->stepMutex.unlock();
 	}
 
 	ta->isRunning = false;
