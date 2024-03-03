@@ -265,6 +265,7 @@ void DisplayReport(const RLGPC::Report& report) {
 		"-Env Step Time",
 		"Consumption Time",
 		"-PPO Learn Time",
+		"Collect-Consume Overlap Time",
 		// TODO: These timers don't work due to non-blocking mode
 		//"--PPO Value Estimate Time",
 		//"--PPO Backprop Data Time",
@@ -311,7 +312,7 @@ void RLGPC::Learner::Learn() {
 
 		// Collect the desired timesteps from our agents
 		GameTrajectory timesteps = agentMgr->CollectTimesteps(config.timestepsPerIteration);
-		double collectionTime = epochTimer.Elapsed();
+		double relCollectionTime = epochTimer.Elapsed();
 		uint64_t timestepsCollected = timesteps.size; // Use actual size instead of target size
 
 		totalTimesteps += timestepsCollected;
@@ -347,24 +348,27 @@ void RLGPC::Learner::Learn() {
 		double epochTime = epochTimer.Elapsed();
 		epochTimer.Reset(); // Reset now otherwise we can have issues with the timer and thread input-locking
 
-		double consumptionTime = epochTime - collectionTime;
+		double consumptionTime = epochTime - relCollectionTime;
 
 		// Get all metrics from agent manager
 		agentMgr->GetMetrics(report);
 
-		// Don't just measure the time we waited for to collect or steps
+		// Don't just measure the time we waited for to collect for steps
 		// Because of collection during learn, this time could be near-zero, resulting in SPS showing some crazy number
-		collectionTime = RS_MAX(collectionTime, agentMgr->lastIterationTime);
+		double trueCollectionTime = agentMgr->lastIterationTime;
+		if (!device.is_cpu())
+			trueCollectionTime -= ppoLearnTime; // On GPU, PPO Learn blocks inference
 
 		{ // Add timers to report
 			report["Total Iteration Time"] = epochTime;
 
-			report["Collection Time"] = collectionTime;
+			report["Collection Time"] = relCollectionTime;
 			report["Consumption Time"] = consumptionTime;
+			report["Collect-Consume Overlap Time"] = (trueCollectionTime - relCollectionTime);
 		}
 
 		{ // Add timestep data to report
-			report["Collected Steps/Second"] = (int64_t)(timestepsCollected / collectionTime);
+			report["Collected Steps/Second"] = (int64_t)(timestepsCollected / trueCollectionTime);
 			report["Overall Steps/Second"] = (int64_t)(timestepsCollected / epochTime);
 			report["Timesteps Collected"] = timestepsCollected;
 			report["Cumulative Timesteps"] = totalTimesteps;
