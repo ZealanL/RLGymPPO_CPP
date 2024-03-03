@@ -306,6 +306,7 @@ void DisplayReport(const RLGPC::Report& report) {
 void RLGPC::Learner::Learn() {
 	RG_LOG("Learner::Learn():")
 	RG_LOG("\tStarting agents...");
+	agentMgr->SetStepCallback(stepCallback);
 	agentMgr->StartAgents();
 
 	RG_LOG("\tBeginning learning loop:");
@@ -313,6 +314,8 @@ void RLGPC::Learner::Learn() {
 	Timer epochTimer = {};
 	while (totalTimesteps < config.timestepLimit || config.timestepLimit == 0) {
 		Report report = {};
+
+		agentMgr->SetStepCallback(stepCallback);
 
 		// Collect the desired timesteps from our agents
 		GameTrajectory timesteps = agentMgr->CollectTimesteps(config.timestepsPerIteration);
@@ -333,7 +336,7 @@ void RLGPC::Learner::Learn() {
 			bool blockAgentInference = !device.is_cpu();
 			if (blockAgentInference)
 				for (auto agent : agentMgr->agents)
-					agent->inferenceMutex.lock();
+					agent->stepMutex.lock();
 
 			try {
 				ppo->Learn(expBuffer, report);
@@ -343,7 +346,7 @@ void RLGPC::Learner::Learn() {
 
 			if (blockAgentInference)
 				for (auto agent : agentMgr->agents)
-					agent->inferenceMutex.unlock();
+					agent->stepMutex.unlock();
 
 			totalEpochs += config.ppo.epochs;
 		}
@@ -380,7 +383,7 @@ void RLGPC::Learner::Learn() {
 
 		// Call iteration callback
 		if (iterationCallback)
-			iterationCallback(report);
+			iterationCallback(this, report);
 
 		{ // Print results
 			constexpr const char* DIVIDER = "======================";
@@ -466,6 +469,19 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 	expBuffer->SubmitExperience(
 		expTensors
 	);
+}
+
+std::vector<RLGPC::Report> RLGPC::Learner::GetAllGameMetrics() {
+	std::vector<Report> reports = {};
+
+	for (auto agent : agentMgr->agents) {
+		agent->stepMutex.lock();
+		for (auto game : agent->gameInsts)
+			reports.push_back(game->_metrics);
+		agent->stepMutex.unlock();
+	}
+
+	return reports;
 }
 
 RLGPC::Learner::~Learner() {

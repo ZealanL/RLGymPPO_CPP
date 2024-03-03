@@ -37,6 +37,12 @@ namespace RLGPC {
 				agent->Stop();
 		}
 
+		void SetStepCallback(StepCallback callback) {
+			for (ThreadAgent* agent : agents)
+				for (GameInst* game : agent->gameInsts)
+					game->stepCallback = callback;
+		}
+
 		void GetMetrics(Report& report);
 		void ResetMetrics();
 

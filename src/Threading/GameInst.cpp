@@ -7,24 +7,24 @@ void RLGPC::GameInst::Start() {
 RLGSC::Gym::StepResult RLGPC::GameInst::Step(const IList& actions) {
 
 	// Step with agent actions
-	auto stepData = gym->Step(actions);
+	auto stepResult = gym->Step(actions);
 
-	auto& nextObs = stepData.obs;
+	auto& nextObs = stepResult.obs;
 
 	{ // Update avg rewards
 		float totalRew = 0;
 		for (int i = 0; i < match->playerAmount; i++)
-			totalRew += stepData.reward[i];
+			totalRew += stepResult.reward[i];
 
 		avgStepRew.Add(totalRew, match->playerAmount);
 		curEpRew += totalRew / match->playerAmount;
 	}
 
 	if (stepCallback)
-		stepCallback(this);
+		stepCallback(this, stepResult, _metrics);
 
 	// Environment ending
-	if (stepData.done) {
+	if (stepResult.done) {
 		nextObs = gym->Reset();
 		
 		avgEpRew += curEpRew;
@@ -34,5 +34,5 @@ RLGSC::Gym::StepResult RLGPC::GameInst::Step(const IList& actions) {
 	curObs = nextObs;
 	totalSteps++;
 
-	return stepData;
+	return stepResult;
 }

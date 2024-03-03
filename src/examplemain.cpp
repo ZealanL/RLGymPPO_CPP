@@ -1,6 +1,7 @@
 #include "Learner.h"
 
 #include "../RLGymSim_CPP/src/Utils/RewardFunctions/CommonRewards.h"
+#include "../RLGymSim_CPP/src/Utils/RewardFunctions/CombinedReward.h"
 #include "../RLGymSim_CPP/src/Utils/TerminalConditions/NoTouchCondition.h"
 #include "../RLGymSim_CPP/src/Utils/TerminalConditions/GoalScoreCondition.h"
 #include "../RLGymSim_CPP/src/Utils/OBSBuilders/DefaultOBS.h"
@@ -10,12 +11,58 @@
 using namespace RLGPC; // RLGymPPO
 using namespace RLGSC; // RLGymSim
 
+// This is our step callback, it's called every step from every RocketSim game
+// WARNING: This is called from multiple threads, often simultaneously, 
+//	so don't access things apart from these arguments unless you know what you're doing.
+// gameMetrics: The metrics for this specific game
+void OnStep(GameInst* gameInst, const RLGSC::Gym::StepResult& stepResult, Report& gameMetrics) {
+
+	auto& gameState = stepResult.state;
+	for (auto& player : gameState.players) {
+		// Track average player speed
+		float speed = player.phys.vel.Length();
+		gameMetrics.AccumAvg("player_speed", speed);
+
+		// Track ball touch ratio
+		gameMetrics.AccumAvg("ball_touch_ratio", player.ballTouched);
+
+		// Track in-air ratio
+		gameMetrics.AccumAvg("in_air_ratio", player.carState.isOnGround);
+	}
+}
+
+// This is our iteration callback, it's called every time we complete an iteration, after learning
+// Here we can add custom metrics to the metrics report, for example
+void OnIteration(Learner* learner, Report& allMetrics) {
+
+	AvgTracker avgPlayerSpeed = {};
+	AvgTracker avgBallTouchRatio = {};
+	AvgTracker avgAirRatio = {};
+	
+	// Get metrics for every gameInst
+	auto allGameMetrics = learner->GetAllGameMetrics();
+	for (auto& gameReport : allGameMetrics) {
+		avgPlayerSpeed += gameReport.GetAvg("player_speed");
+		avgBallTouchRatio += gameReport.GetAvg("ball_touch_ratio");
+		avgAirRatio += gameReport.GetAvg("in_air_ratio");
+	}
+
+	allMetrics["player_speed"] = avgPlayerSpeed.Get();
+	allMetrics["ball_touch_ratio"] = avgBallTouchRatio.Get();
+	allMetrics["in_air_ratio"] = avgBallTouchRatio.Get();
+}
+
 // Create the RLGymSim environment for each of our games
 EnvCreateResult EnvCreateFunc() {
 	constexpr int TICK_SKIP = 8;
 	constexpr float NO_TOUCH_TIMEOUT_SECS = 3.f;
 
-	auto reward = new FaceBallReward();
+	auto rewards = new CombinedReward( // Format is { RewardFunc(), weight }
+		{ 
+			{ new FaceBallReward(), 0.1f }, // 10% of reward for facing the ball
+			{ new VelocityPlayerToBallReward(), 0.9f } // 90% of reward for going towards the ball supersonic
+		}
+	);
 
 	std::vector<TerminalCondition*> terminalConditions = {
 		new NoTouchCondition(NO_TOUCH_TIMEOUT_SECS * 120 / TICK_SKIP),
@@ -27,7 +74,7 @@ EnvCreateResult EnvCreateFunc() {
 	auto stateSetter = new RandomState(true, true, true);
 
 	Match* match = new Match(
-		reward,
+		rewards,
 		terminalConditions,
 		obs,
 		actionParser,
@@ -75,6 +122,10 @@ int main() {
 
 	// Make the learner with the environment creation function and the config we just made
 	Learner learner = Learner(EnvCreateFunc, cfg);
+
+	// Set up our callbacks
+	learner.stepCallback = OnStep;
+	learner.iterationCallback = OnIteration;
 
 	// Start learning!
 	learner.Learn();

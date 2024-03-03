@@ -4,6 +4,8 @@
 #include "../Util/Report.h"
 
 namespace RLGPC {
+	typedef std::function<void(class GameInst*, const RLGSC::Gym::StepResult&, Report&)> StepCallback;
+
 	class GameInst {
 	public:
 		RLGSC::Gym* gym;
@@ -16,8 +18,10 @@ namespace RLGPC {
 		float curEpRew = 0;
 		AvgTracker avgStepRew, avgEpRew;
 
-		Report metrics = {};
-		std::function<void(GameInst*)> stepCallback = NULL;
+		// Will be reset every iteration, when ResetMetrics() is called
+		Report _metrics = {};
+
+		StepCallback stepCallback = NULL;
 
 		// NOTE: Gym and match will be deleted when GameInst is deleted
 		GameInst(RLGSC::Gym* gym, RLGSC::Match* match) : gym(gym), match(match) {
@@ -26,9 +30,10 @@ namespace RLGPC {
 
 		RG_NO_COPY(GameInst);
 
-		void ResetAvgs() {
+		void ResetMetrics() {
 			avgStepRew.Reset();
 			avgEpRew.Reset();
+			_metrics.Clear();
 		}
 
 		void Start();

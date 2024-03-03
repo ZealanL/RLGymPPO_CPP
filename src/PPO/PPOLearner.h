@@ -32,5 +32,7 @@ namespace RLGPC {
 
 		void SaveTo(std::filesystem::path folderPath);
 		void LoadFrom(std::filesystem::path folderPath, bool isFromPython);
+
+		void UpdateLearningRates(float policyLR, float criticLR);
 	};
 }

@@ -43,17 +43,18 @@ void _RunFunc(ThreadAgent* ta) {
 		while (ta->stepsCollected > ta->maxCollect)
 			std::this_thread::yield();
 
+		ta->stepMutex.lock();
+
 		// Move our current OBS tensor to the device we run the policy on
 		// This conversion time is not counted as a part of policy inference time
 		torch::Tensor curObsTensorDevice = curObsTensor.to(device, true);
 
 		// Infer the policy to get actions for all our agents in all our games
 		Timer policyInferTimer = {};
-		ta->inferenceMutex.lock();
+		
 		if (autocast) RG_AUTOCAST_ON();
 		auto actionResults = mgr->policy->GetAction(curObsTensorDevice);
 		if (autocast) RG_AUTOCAST_OFF();
-		ta->inferenceMutex.unlock();
 		ta->times.policyInferTime += policyInferTimer.Elapsed();
 
 		// Step the gym with the actions we got
@@ -122,6 +123,8 @@ void _RunFunc(ThreadAgent* ta) {
 		curObsTensor = nextObsTensor;
 
 		delete[] stepResults;
+
+		ta->stepMutex.unlock();
 	}
 
 	ta->isRunning = false;

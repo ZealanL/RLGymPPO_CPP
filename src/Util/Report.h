@@ -28,6 +28,25 @@ namespace RLGPC {
 			}
 		}
 
+		// Accumulates an average using two entries
+		// Use GetAvg() to get the average
+		void AccumAvg(const std::string& key, Val val) {
+			Accum(key + "_avg_total", val);
+			Accum(key + "_avg_count", 1);
+		}
+
+		// Gets an average metric accumulated with AccumAvg()
+		Val GetAvg(const std::string& key) const {
+			Val total = data.at(key + "_avg_total");
+			Val count = data.at(key + "_avg_count");
+
+			if (count > 0) {
+				return total / count;
+			} else {
+				return 0;
+			}
+		}
+
 		std::string SingleToString(const std::string& key, bool digitCommas = false) const {
 
 			// https://stackoverflow.com/a/7277333
@@ -71,6 +90,10 @@ namespace RLGPC {
 				stream << prefix << SingleToString(pair.first, digitCommas) << std::endl;
 			}
 			return stream.str();
+		}
+
+		void Clear() {
+			*this = Report();
 		}
 
 		Report operator+(const Report& other) const {

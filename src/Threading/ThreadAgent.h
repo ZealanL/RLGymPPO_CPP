@@ -42,11 +42,12 @@ namespace RLGPC {
 		std::vector<std::vector<GameTrajectory>> trajectories = {};
 		std::atomic<uint64_t> stepsCollected = 0;
 		uint64_t maxCollect;
-		std::mutex trajMutex = {};
 
-		// Lock this to stop the agent from inferencing
-		// Useful if agent inference is blocking gpu-intensive learning
-		std::mutex inferenceMutex = {};
+		// Lock to prevent stepping
+		std::mutex stepMutex = {};
+		
+		// Lock to modify trajectories
+		std::mutex trajMutex = {};
 
 		ThreadAgent(void* manager, int numGames, uint64_t maxCollect, EnvCreateFn envCreateFn);
 

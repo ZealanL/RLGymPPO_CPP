@@ -103,6 +103,6 @@ void RLGPC::ThreadAgentManager::ResetMetrics() {
 	for (auto agent : agents) {
 		agent->times = {};
 		for (auto game : agent->gameInsts)
-			game->ResetAvgs();
+			game->ResetMetrics();
 	}
 }

@@ -299,4 +299,21 @@ void RLGPC::PPOLearner::LoadFrom(std::filesystem::path folderPath, bool isFromPy
 	} else {
 		TorchLoadSaveAll(this, folderPath, true);
 	}
+
+	UpdateLearningRates(config.policyLR, config.criticLR);
+}
+
+void RLGPC::PPOLearner::UpdateLearningRates(float policyLR, float criticLR) {
+	config.policyLR = policyLR;
+	config.criticLR = criticLR;
+
+	for (auto& g : policyOptimizer->param_groups())
+		static_cast<torch::optim::AdamOptions&>(g.options()).lr(policyLR);
+
+	for (auto& g : valueOptimizer->param_groups())
+		static_cast<torch::optim::AdamOptions&>(g.options()).lr(criticLR);
+
+	std::stringstream updatedMsg;
+	updatedMsg << std::scientific << "Updated learning rate to [" << policyLR << ", " << criticLR << "]";
+	RG_LOG("PPOLearner: " << updatedMsg.str());
 }

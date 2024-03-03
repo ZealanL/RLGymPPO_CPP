@@ -7,6 +7,8 @@
 
 namespace RLGPC {
 
+	typedef std::function<void(class Learner*, Report&)> IterationCallback;
+
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/learner.py
 	class Learner {
 	public:
@@ -34,12 +36,15 @@ namespace RLGPC {
 		void Learn();
 		void AddNewExperience(GameTrajectory& gameTraj);
 
+		std::vector<Report> GetAllGameMetrics();
+
 		void Save();
 		void Load();
 		void SaveStats(std::filesystem::path path);
 		void LoadStats(std::filesystem::path path);
 
-		std::function<void(const Report&)> iterationCallback = NULL;
+		IterationCallback iterationCallback = NULL;
+		StepCallback stepCallback = NULL;
 
 		RG_NO_COPY(Learner);
 
