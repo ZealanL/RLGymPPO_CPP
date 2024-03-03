@@ -10,6 +10,10 @@ void RLGPC::TorchFuncs::ComputeGAE(
 	auto next_values = FList(values.begin() + 1, values.end());
 	auto& terminal = dones;
 
+	float returnScale = 1 / returnStd;
+	if (isnan(returnScale))
+		returnScale = 0;
+
 	float lastGAE_LAM = 0;
 	int nReturns = rews.size();
 	FList adv = FList(nReturns);
@@ -27,8 +31,8 @@ void RLGPC::TorchFuncs::ComputeGAE(
 		}
 
 		float norm_rew;
-		if (returnStd != -1) {
-			norm_rew = RS_CLAMP(rews[step] / returnStd, -10, 10);
+		if (returnStd != 0) {
+			norm_rew = RS_CLAMP(rews[step] * returnScale, -10, 10);
 		} else {
 			norm_rew = rews[step];
 		}
