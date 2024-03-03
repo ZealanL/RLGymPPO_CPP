@@ -47,7 +47,7 @@ namespace RLGPC {
 
 			for (int i = 0; i < shape; i++) {
 				runningMean[i] += deltaN[i];
-				runningMean[i] += delta[i] * deltaN[i] * currentCount;
+				runningVariance[i] += delta[i] * deltaN[i] * currentCount;
 			}
 		}
 
