@@ -25,12 +25,6 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("\tCheckpoint Load Dir: " << config.checkpointLoadFolder);
 	RG_LOG("\tCheckpoint Save Dir: " << config.checkpointSaveFolder);
 
-	if (config.sendMetrics) {
-		metricSender = new MetricSender(config.metricsProjectName, config.metricsGroupName, config.metricsRunName);
-	} else {
-		metricSender = NULL;
-	}
-
 	torch::manual_seed(config.randomSeed);
 
 	if (
@@ -98,10 +92,29 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 
 	if (!config.checkpointLoadFolder.empty())
 		Load();
+
+	if (config.sendMetrics) {
+		metricSender = new MetricSender(config.metricsProjectName, config.metricsGroupName, config.metricsRunName, runID);
+	} else {
+		metricSender = NULL;
+	}
 }
 
 void RLGPC::Learner::SaveStats(std::filesystem::path path) {
 	using namespace nlohmann;
+
+	constexpr auto fnMakeJsonArray = [](const FList& fList) {
+		auto result = nlohmann::json::array();
+
+		for (float f : fList) {
+			if (isnan(f))
+				RG_LOG("fnMakeJsonArray(): Failed to serialize JSON with NAN value (list size: " << fList.size() << ")");
+			result.push_back(f);
+		}
+
+		return result;
+	};
+
 	constexpr const char* ERROR_PREFIX = "Learner::SaveStats(): ";
 
 	std::ofstream fOut(path);
@@ -115,11 +128,14 @@ void RLGPC::Learner::SaveStats(std::filesystem::path path) {
 	
 	auto& rrs = j["reward_running_stats"];
 	{
-		rrs["mean"] = returnStats.runningMean;
-		rrs["var"] = returnStats.runningVariance;
+		rrs["mean"] = fnMakeJsonArray(returnStats.runningMean);
+		rrs["var"] = fnMakeJsonArray(returnStats.runningVariance);
 		rrs["shape"] = returnStats.shape;
 		rrs["count"] = returnStats.count;
 	}
+
+	if (config.sendMetrics)
+		j["run_id"] = metricSender->curRunID;
 
 	std::string jStr = j.dump(4);
 	fOut << jStr;
@@ -147,6 +163,9 @@ void RLGPC::Learner::LoadStats(std::filesystem::path path) {
 		returnStats.runningVariance = rrs["var"].get<FList>();
 		returnStats.count = rrs["count"];
 	}
+
+	if (j.contains("run_id"))
+		runID = j["run_id"];
 }
 
 // Different than RLGym-PPO to show that they are not compatible
@@ -162,6 +181,33 @@ void RLGPC::Learner::Save() {
 	RG_LOG("Saving to folder " << saveFolder << "...");
 	SaveStats(saveFolder / STATS_FILE_NAME);
 	ppo->SaveTo(saveFolder);
+
+	// Remove old checkpoints
+	if (config.checkpointsToKeep != -1) {
+		int numCheckpoints = 0;
+		int64_t lowestCheckpointTS = INT64_MAX;
+
+		for (auto entry : std::filesystem::directory_iterator(config.checkpointLoadFolder)) {
+			if (entry.is_directory()) {
+				auto name = entry.path().filename();
+				try {
+					int64_t nameVal = std::stoll(name);
+					lowestCheckpointTS = RS_MIN(nameVal, lowestCheckpointTS);
+					numCheckpoints++;
+				} catch (...) {}
+			}
+		}
+
+		if (numCheckpoints > config.checkpointsToKeep) {
+			std::filesystem::path removePath = config.checkpointLoadFolder / std::to_string(lowestCheckpointTS);
+			try {
+				std::filesystem::remove(removePath);
+			} catch (std::exception& e) {
+				RG_ERR_CLOSE("Failed to remove old checkpoint from " << removePath)
+			}
+		}
+	}
+
 	RG_LOG(" > Done.");
 }
 
@@ -187,7 +233,7 @@ void RLGPC::Learner::Load() {
 	if (highest != -1) {
 		std::filesystem::path loadFolder = config.checkpointLoadFolder / std::to_string(highest);
 		RG_LOG(" > Loading checkpoint " << loadFolder << "...");
-		SaveStats(loadFolder / STATS_FILE_NAME);
+		LoadStats(loadFolder / STATS_FILE_NAME);
 		ppo->LoadFrom(loadFolder, false);
 		RG_LOG(" > Done.");
 	} else {

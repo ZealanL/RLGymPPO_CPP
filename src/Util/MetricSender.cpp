@@ -8,7 +8,7 @@ namespace py = pybind11;
 
 using namespace RLGPC;
 
-RLGPC::MetricSender::MetricSender(std::string _projectName, std::string _groupName, std::string _runName) :
+RLGPC::MetricSender::MetricSender(std::string _projectName, std::string _groupName, std::string _runName, std::string runID) :
 	projectName(_projectName), groupName(_groupName), runName(_runName) {
 
 	RG_LOG("Initializing MetricSender..");
@@ -22,7 +22,10 @@ RLGPC::MetricSender::MetricSender(std::string _projectName, std::string _groupNa
 	}
 
 	try {
-		pyMod.attr("init")(PY_EXEC_PATH, projectName, groupName, runName);
+		auto returedRunID = pyMod.attr("init")(PY_EXEC_PATH, projectName, groupName, runName, runID);
+		curRunID = returedRunID.cast<std::string>();
+		RG_LOG(" > " << (runID.empty() ? "Starting" : "Continuing") << " run with ID : \"" << curRunID << "\"...");
+
 	} catch (std::exception& e) {
 		RG_ERR_CLOSE("MetricSender: Failed to initialize in Python, exception: " << e.what());
 	}

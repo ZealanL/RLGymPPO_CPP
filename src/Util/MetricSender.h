@@ -12,10 +12,11 @@ namespace RLGPC {
 			COMM_PREFIX  = 0x1AB80D61,
 			ACK_PREFIX   = 0x1AB80D62;
 
+		std::string curRunID;
 		std::string projectName, groupName, runName;
 		pybind11::module pyMod;
 
-		MetricSender(std::string projectName = {}, std::string groupName = {}, std::string runName = {});
+		MetricSender(std::string projectName = {}, std::string groupName = {}, std::string runName = {}, std::string runID = {});
 		
 		RG_NO_COPY(MetricSender);
 

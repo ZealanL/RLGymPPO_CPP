@@ -22,6 +22,8 @@ namespace RLGPC {
 		int actionAmount;
 		torch::Device device;
 
+		std::string runID = {};
+
 		uint64_t
 			totalTimesteps = 0,
 			totalEpochs = 0;
