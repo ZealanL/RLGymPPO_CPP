@@ -201,9 +201,9 @@ void RLGPC::Learner::Save() {
 		if (numCheckpoints > config.checkpointsToKeep) {
 			std::filesystem::path removePath = config.checkpointLoadFolder / std::to_string(lowestCheckpointTS);
 			try {
-				std::filesystem::remove(removePath);
+				std::filesystem::remove_all(removePath);
 			} catch (std::exception& e) {
-				RG_ERR_CLOSE("Failed to remove old checkpoint from " << removePath)
+				RG_ERR_CLOSE("Failed to remove old checkpoint from " << removePath << ", exception: " << e.what());
 			}
 		}
 	}
