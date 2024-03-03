@@ -2,6 +2,7 @@
 
 #include <torch/cuda.h>
 #include "../libsrc/json/nlohmann/json.hpp"
+#include <pybind11/embed.h>
 
 RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	envCreateFn(envCreateFn),
@@ -10,6 +11,9 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 {
 	torch::set_num_interop_threads(1);
 	torch::set_num_threads(1);
+
+
+	pybind11::initialize_interpreter();
 
 	if (config.timestepsPerSave == 0)
 		config.timestepsPerSave = config.timestepsPerIteration;
@@ -462,4 +466,12 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 	expBuffer->SubmitExperience(
 		expTensors
 	);
+}
+
+RLGPC::Learner::~Learner() {
+	delete ppo;
+	delete agentMgr;
+	delete expBuffer;
+	delete metricSender;
+	pybind11::finalize_interpreter();
 }

@@ -43,11 +43,6 @@ namespace RLGPC {
 
 		RG_NO_COPY(Learner);
 
-		~Learner() {
-			delete ppo;
-			delete agentMgr;
-			delete expBuffer;
-			delete metricSender;
-		}
+		~Learner();
 	};
 }

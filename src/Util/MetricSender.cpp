@@ -13,8 +13,6 @@ RLGPC::MetricSender::MetricSender(std::string _projectName, std::string _groupNa
 
 	RG_LOG("Initializing MetricSender..");
 
-	py::initialize_interpreter();
-
 	try {
 		pyMod = py::module::import("python_scripts.metric_receiver");
 	} catch (std::exception& e) {
@@ -49,5 +47,5 @@ void RLGPC::MetricSender::Send(const Report& report) {
 }
 
 RLGPC::MetricSender::~MetricSender() {
-	py::finalize_interpreter();
+	
 }
