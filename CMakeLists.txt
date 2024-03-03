@@ -30,8 +30,36 @@ set_target_properties(RLGymPPO_CPP PROPERTIES CXX_STANDARD 20)
 add_subdirectory(RLGymSim_CPP)
 target_link_libraries(RLGymPPO_CPP RLGymSim_CPP)
 
+# Include python
+find_package(Python COMPONENTS Interpreter Development)
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+target_link_libraries(RLGymPPO_CPP ${PYTHON_LIBRARIES})
+message("Found Python:")
+message("PYTHON_LIBRARIES: ${PYTHON_LIBRARIES}")
+message("PYTHON_INCLUDE_DIRS: ${PYTHON_INCLUDE_DIRS}")
+message("Python_RUNTIME_LIBRARY_DIRS: ${Python_RUNTIME_LIBRARY_DIRS}")
+message("Python_EXECUTABLE: ${Python_EXECUTABLE}")
+add_definitions(-DPY_EXEC_PATH="${Python_EXECUTABLE}") # Give C++ access to the executable path
+
+# Include pybind11
+add_subdirectory(pybind11)
+target_link_libraries(RLGymPPO_CPP pybind11::embed)
+
+# MSVC fails to find python DLLs even through they are in my path. Good job MSVC. Well done.
+# This copies the the python DLLs to the output directory
+if (MSVC)
+    file(GLOB PYTHON_DLLS "${Python_RUNTIME_LIBRARY_DIRS}/*.dll")
+	message("Adding Python DLLS: ${PYTHON_DLLS}")
+    add_custom_command(TARGET RLGymPPO_CPP
+                 POST_BUILD
+                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                 ${PYTHON_DLLS}
+                 $<TARGET_FILE_DIR:RLGymPPO_CPP>)
+endif (MSVC)
+
 # Make our python files copy over to our build dir
-configure_file("./python_scripts/metrics_receiver.py" "./python_scripts/metrics_receiver.py" COPY)
+configure_file("./python_scripts/metric_receiver.py" "./python_scripts/metric_receiver.py" COPY)
 
 # MSVC sometimes won't link to the libtorch DLLs unless you do this
 # This is also from https://pytorch.org/cppdocs/installing.html#minimal-example

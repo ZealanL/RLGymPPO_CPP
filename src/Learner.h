@@ -16,6 +16,7 @@ namespace RLGPC {
 		ThreadAgentManager* agentMgr;
 		ExperienceBuffer* expBuffer;
 		EnvCreateFn envCreateFn;
+		MetricSender* metricSender;
 
 		int obsSize;
 		int actionAmount;
@@ -44,6 +45,7 @@ namespace RLGPC {
 			delete ppo;
 			delete agentMgr;
 			delete expBuffer;
+			delete metricSender;
 		}
 	};
 }

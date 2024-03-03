@@ -1,8 +1,9 @@
 #pragma once
 #include "Report.h"
+#include <pybind11/pybind11.h>
 
 namespace RLGPC {
-	namespace MetricSender {
+	struct MetricSender {
 		constexpr static int
 			PORT_CPP = 3942,
 			PORT_PY = 3943;
@@ -11,9 +12,15 @@ namespace RLGPC {
 			COMM_PREFIX  = 0x1AB80D61,
 			ACK_PREFIX   = 0x1AB80D62;
 
-		void Init(std::string projectName = {}, std::string groupName = {}, std::string runName = {});
-		bool IsConnected();
+		std::string projectName, groupName, runName;
+		pybind11::module pyMod;
+
+		MetricSender(std::string projectName = {}, std::string groupName = {}, std::string runName = {});
+		
+		RG_NO_COPY(MetricSender);
 
 		void Send(const Report& report);
+
+		~MetricSender();
 	};
 }

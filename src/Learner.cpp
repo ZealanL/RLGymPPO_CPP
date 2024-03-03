@@ -25,8 +25,11 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("\tCheckpoint Load Dir: " << config.checkpointLoadFolder);
 	RG_LOG("\tCheckpoint Save Dir: " << config.checkpointSaveFolder);
 
-	if (config.sendMetrics)
-		MetricSender::Init(config.metricsProjectName, config.metricsGroupName, config.metricsRunName);
+	if (config.sendMetrics) {
+		metricSender = new MetricSender(config.metricsProjectName, config.metricsGroupName, config.metricsRunName);
+	} else {
+		metricSender = NULL;
+	}
 
 	torch::manual_seed(config.randomSeed);
 
@@ -337,7 +340,7 @@ void RLGPC::Learner::Learn() {
 
 		// Update metric sender
 		if (config.sendMetrics)
-			MetricSender::Send(report);
+			metricSender->Send(report);
 
 		// Save if needed
 		tsSinceSave += timestepsCollected;
