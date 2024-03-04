@@ -81,11 +81,11 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	expBuffer = new ExperienceBuffer(config.expBufferSize, config.randomSeed, device);
 
 	RG_LOG("\tCreating PPO Learner...");
-	ppo = new PPOLearner(obsSize, actionAmount, config.ppo, device);
+	ppo = new PPOLearner(obsSize, actionAmount, config.halfPrecisionPolicy, config.ppo, device);
 
 	RG_LOG("\tCreating agent manager...");
 	agentMgr = new ThreadAgentManager(
-		ppo->policy, expBuffer, 
+		config.halfPrecisionPolicy ? ppo->policyHalf : ppo->policy, expBuffer,
 		config.standardizeOBS, config.autocastInference, 
 		(uint64_t)(config.timestepsPerIteration * 1.5f),
 		device

@@ -11,13 +11,26 @@ Tensor _CopyParams(nn::Module* mod) {
 	return torch::nn::utils::parameters_to_vector(mod->parameters()).cpu();
 }
 
-RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConfig _config, Device _device) 
+void _CopyPolicyParamsHalf(RLGPC::DiscretePolicy* from, RLGPC::DiscretePolicy* to) {
+	auto parameters = torch::nn::utils::parameters_to_vector(from->parameters());
+	torch::nn::utils::vector_to_parameters(parameters.to(torch::ScalarType::BFloat16), to->parameters());
+}
+
+RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, bool enableHalfPolicy, PPOLearnerConfig _config, Device _device)
 	: config(_config), device(_device) {
 
 	if (config.miniBatchSize == 0)
 		config.miniBatchSize = config.batchSize;
 
 	policy = new DiscretePolicy(obsSpaceSize, actSpaceSize, config.policyLayerSizes, device);
+	if (enableHalfPolicy) {
+		policyHalf = new DiscretePolicy(obsSpaceSize, actSpaceSize, config.policyLayerSizes, device);
+		policyHalf->isHalf = true;
+		_CopyPolicyParamsHalf(policy, policyHalf);
+	} else {
+		policyHalf = NULL;
+	}
+
 	valueNet = new ValueEstimator(obsSpaceSize, config.criticLayerSizes, device);
 	policyOptimizer = new optim::Adam(policy->parameters(), optim::AdamOptions(config.policyLR));
 	valueOptimizer = new optim::Adam(valueNet->parameters(), optim::AdamOptions(config.criticLR));
@@ -154,6 +167,10 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 		for (float f : clipFractions)
 			meanClip += f;
 		meanClip /= clipFractions.size();
+	}
+
+	if (policyHalf) {
+		_CopyPolicyParamsHalf(policy, policyHalf);
 	}
 
 	// Compute magnitude of updates made to the policy and value estimator
@@ -298,6 +315,10 @@ void RLGPC::PPOLearner::LoadFrom(std::filesystem::path folderPath, bool isFromPy
 		// TODO: Load optimizer
 	} else {
 		TorchLoadSaveAll(this, folderPath, true);
+	}
+
+	if (policyHalf) {
+		_CopyPolicyParamsHalf(policy, policyHalf);
 	}
 
 	UpdateLearningRates(config.policyLR, config.criticLR);

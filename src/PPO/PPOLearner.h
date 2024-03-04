@@ -14,6 +14,7 @@ namespace RLGPC {
 	class PPOLearner {
 	public:
 		DiscretePolicy* policy;
+		DiscretePolicy* policyHalf;
 		ValueEstimator* valueNet;
 		torch::optim::Adam *policyOptimizer, *valueOptimizer;
 		torch::nn::MSELoss valueLossFn;
@@ -24,7 +25,7 @@ namespace RLGPC {
 		int cumulativeModelUpdates = 0;
 
 		PPOLearner(
-			int obsSpaceSize, int actSpaceSize,
+			int obsSpaceSize, int actSpaceSize, bool enableHalfPolicy,
 			PPOLearnerConfig config, torch::Device device
 		);
 		

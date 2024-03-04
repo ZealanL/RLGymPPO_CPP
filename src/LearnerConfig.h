@@ -28,6 +28,7 @@ namespace RLGPC {
 		int stepsPerObsStatsInc = 5;
 
 		bool autocastInference = false; // Enable torch autocast for policy inference (seems bad from my testing)
+		bool halfPrecisionPolicy = false; 
 
 		PPOLearnerConfig ppo = {};
 

@@ -11,6 +11,7 @@ namespace RLGPC {
 		torch::nn::Sequential seq;
 		int inputAmount;
 		int actionAmount;
+		bool isHalf = false;
 
 		// Min probability that an action will be taken
 		constexpr static float ACTION_MIN_PROB = 1e-11;

@@ -29,14 +29,29 @@ RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const I
 }
 
 RLGPC::DiscretePolicy::ActionResult RLGPC::DiscretePolicy::GetAction(torch::Tensor obs) {
-	// Get probability of each action
-	auto probs = GetOutput(obs);
-	probs = probs.view({ -1, actionAmount });
-	probs = torch::clamp(probs, ACTION_MIN_PROB, 1); // Prevent actions from being impossible, and also log(0)
+	if (isHalf)
+		obs = obs.to(torch::ScalarType::BFloat16);
 
-	auto action = torch::multinomial(probs, 1, true);
-	auto logProb = torch::log(probs).gather(-1, action);
-	return ActionResult{ action.cpu().flatten(), logProb.cpu().flatten() };
+	try {
+		// Get probability of each action
+		auto probs = GetOutput(obs);
+		probs = probs.view({ -1, actionAmount });
+		probs = torch::clamp(probs, ACTION_MIN_PROB, 1); // Prevent actions from being impossible, and also log(0)
+
+		auto action = torch::multinomial(probs, 1, true);
+		auto logProb = torch::log(probs).gather(-1, action);
+
+		if (isHalf) {
+			action = action.to(torch::ScalarType::Float);
+			logProb = logProb.to(torch::ScalarType::Float);
+		}
+
+		return ActionResult{ action.cpu().flatten(), logProb.cpu().flatten() };
+	} catch (std::exception& e) {
+		RG_LOG(e.what());
+		throw e;
+	}
+	return ActionResult{};
 }
 
 int RLGPC::DiscretePolicy::GetDeterministicActionIdx(torch::Tensor obs) {
