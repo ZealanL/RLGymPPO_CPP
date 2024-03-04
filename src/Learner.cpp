@@ -12,7 +12,6 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	torch::set_num_interop_threads(1);
 	torch::set_num_threads(1);
 
-
 	pybind11::initialize_interpreter();
 
 	if (config.timestepsPerSave == 0)
@@ -362,9 +361,10 @@ void RLGPC::Learner::Learn() {
 
 		// Don't just measure the time we waited for to collect for steps
 		// Because of collection during learn, this time could be near-zero, resulting in SPS showing some crazy number
-		double trueCollectionTime = RS_MAX(agentMgr->lastIterationTime, relCollectionTime);
+		double trueCollectionTime = agentMgr->lastIterationTime;
 		if (blockAgentInferDuringLearn)
 			trueCollectionTime -= ppoLearnTime; // We couldn't have been collecting during this time
+		trueCollectionTime = RS_MAX(trueCollectionTime, relCollectionTime);
 
 		// Fix same issue with epoch time
 		double trueEpochTime = RS_MAX(relEpochTime, trueCollectionTime);
