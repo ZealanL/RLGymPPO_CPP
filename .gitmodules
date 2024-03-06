@@ -1,6 +1,6 @@
 [submodule "RLGymSim_CPP"]
-	path = RLGymSim_CPP
+	path = RLGymPPO_CPP/RLGymSim_CPP
 	url = https://github.com/ZealanL/RLGymSim_CPP
 [submodule "pybind11"]
-	path = pybind11
+	path = RLGymPPO_CPP/pybind11
 	url = https://github.com/pybind/pybind11

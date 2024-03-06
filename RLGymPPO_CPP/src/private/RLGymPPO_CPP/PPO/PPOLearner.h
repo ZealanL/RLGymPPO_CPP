@@ -2,9 +2,9 @@
 #include "DiscretePolicy.h";
 #include "ValueEstimator.h";
 #include "ExperienceBuffer.h";
-#include "../Util/Report.h"
-#include "../Util/Timer.h"
-#include "PPOLearnerConfig.h"
+#include <RLGymPPO_CPP/Util/Report.h>
+#include <RLGymPPO_CPP/Util/Timer.h>
+#include <RLGymPPO_CPP/PPO/PPOLearnerConfig.h>
 
 #include <torch/optim/adam.h>
 #include <torch/nn/modules/loss.h>

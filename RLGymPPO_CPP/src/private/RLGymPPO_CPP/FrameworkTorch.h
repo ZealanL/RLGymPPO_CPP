@@ -1,12 +1,22 @@
 #pragma once
-#include "Framework.h"
+#include <RLGymPPO_CPP/Framework.h>
+#include <RLGymPPO_CPP/Lists.h>
+
+// Include torch
+#include <ATen/ATen.h>
+#include <ATen/autocast_mode.h>
+#include <torch/utils.h>
+
+#define RG_NOGRAD torch::NoGradGuard _noGradGuard
+
+#define RG_AUTOCAST_ON() at::autocast::set_enabled(true)
+
+#define RG_AUTOCAST_OFF() { \
+at::autocast::clear_cache(); \
+at::autocast::set_enabled(false); \
+}
 
 namespace RLGPC {
-	typedef RLGSC::FList FList;
-	typedef RLGSC::FList2 FList2;
-	typedef RLGSC::IList IList;
-	typedef RLGSC::IList2 IList2;
-
 	// Method from: https://stackoverflow.com/questions/63466847/how-is-it-possible-to-convert-a-stdvectorstdvectordouble-to-a-torchten
 	inline torch::Tensor FLIST2_TO_TENSOR(const FList2& list) {
 		int innerSize = list[0].size();

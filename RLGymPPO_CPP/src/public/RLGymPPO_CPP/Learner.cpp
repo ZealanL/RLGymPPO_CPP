@@ -1,13 +1,16 @@
 #include "Learner.h"
 
+#include <RLGymPPO_CPP/PPO/PPOLearner.h>
+#include <RLGymPPO_CPP/PPO/ExperienceBuffer.h>
+#include <RLGymPPO_CPP/Threading/ThreadAgentManager.h>
+
 #include <torch/cuda.h>
 #include "../libsrc/json/nlohmann/json.hpp"
 #include <pybind11/embed.h>
 
 RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	envCreateFn(envCreateFn),
-	config(_config), 
-	device(at::Device(at::kCPU)) // Legally required to initialize this unfortunately
+	config(_config)
 {
 	torch::set_num_interop_threads(1);
 	torch::set_num_threads(1);
@@ -30,6 +33,7 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 
 	torch::manual_seed(config.randomSeed);
 
+	at::Device device = at::Device(at::kCPU);
 	if (
 		config.deviceType == LearnerDeviceType::GPU_CUDA || 
 		(config.deviceType == LearnerDeviceType::AUTO && torch::cuda::is_available())
@@ -41,7 +45,7 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 		bool deviceTestFailed = false;
 		try {
 			t = torch::tensor(0);
-			t = t.to(device);
+			t = t.to(at::Device(at::kCUDA));
 			t = t.cpu();
 		} catch (...) {
 			deviceTestFailed = true;
@@ -308,6 +312,8 @@ void RLGPC::Learner::Learn() {
 	agentMgr->SetStepCallback(stepCallback);
 	agentMgr->StartAgents();
 
+	auto device = ppo->device;
+
 	RG_LOG("\tBeginning learning loop:");
 	int64_t tsSinceSave = 0;
 	Timer epochTimer = {};
@@ -415,7 +421,7 @@ void RLGPC::Learner::Learn() {
 		agentMgr->ResetMetrics();
 	}
 	
-	RG_LOG("Learner: Timestep limit of " << RG_COMMA_INT(config.timestepLimit) << " reached, stopping");
+	RG_LOG("Learner: Timestep limit of " << config.timestepLimit << " reached, stopping");
 	RG_LOG("\tStopping agents...");
 	agentMgr->StopAgents();
 }
@@ -431,7 +437,7 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 	size_t count = trajData.actions.size(0);
 
 	// Construct input to the value function estimator that includes the final state (which an action was not taken in)
-	auto valInput = torch::cat({ trajData.states, torch::unsqueeze(trajData.nextStates[count - 1], 0) }).to(device, true);
+	auto valInput = torch::cat({ trajData.states, torch::unsqueeze(trajData.nextStates[count - 1], 0) }).to(ppo->device, true);
 
 	auto valPredsTensor = ppo->valueNet->Forward(valInput).cpu().flatten();
 	FList valPreds = TENSOR_TO_FLIST(valPredsTensor);

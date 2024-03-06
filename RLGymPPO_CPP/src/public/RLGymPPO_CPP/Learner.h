@@ -1,6 +1,7 @@
 #pragma once
-#include "PPO/PPOLearner.h"
-#include "Threading/ThreadAgentManager.h"
+//#include "PPO/PPOLearner.h"
+//#include "Threading/ThreadAgentManager.h"
+#include "Threading/GameInst.h"
 #include "Util/WelfordRunningStat.h"
 #include "Util/MetricSender.h"
 #include "LearnerConfig.h"
@@ -10,19 +11,18 @@ namespace RLGPC {
 	typedef std::function<void(class Learner*, Report&)> IterationCallback;
 
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/learner.py
-	class Learner {
+	class RG_IMEXPORT Learner {
 	public:
 		LearnerConfig config;
 
-		PPOLearner* ppo;
-		ThreadAgentManager* agentMgr;
-		ExperienceBuffer* expBuffer;
+		class PPOLearner* ppo;
+		class ThreadAgentManager* agentMgr;
+		class ExperienceBuffer* expBuffer;
 		EnvCreateFn envCreateFn;
 		MetricSender* metricSender;
 
 		int obsSize;
 		int actionAmount;
-		torch::Device device;
 
 		std::string runID = {};
 
@@ -34,7 +34,7 @@ namespace RLGPC {
 
 		Learner(EnvCreateFn envCreateFunc, LearnerConfig config);
 		void Learn();
-		void AddNewExperience(GameTrajectory& gameTraj);
+		void AddNewExperience(class GameTrajectory& gameTraj);
 
 		std::vector<Report> GetAllGameMetrics();
 

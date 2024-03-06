@@ -1,12 +1,12 @@
-#include "Learner.h"
+#include <RLGymPPO_CPP/Learner.h>
 
-#include "../RLGymSim_CPP/src/Utils/RewardFunctions/CommonRewards.h"
-#include "../RLGymSim_CPP/src/Utils/RewardFunctions/CombinedReward.h"
-#include "../RLGymSim_CPP/src/Utils/TerminalConditions/NoTouchCondition.h"
-#include "../RLGymSim_CPP/src/Utils/TerminalConditions/GoalScoreCondition.h"
-#include "../RLGymSim_CPP/src/Utils/OBSBuilders/DefaultOBS.h"
-#include "../RLGymSim_CPP/src/Utils/StateSetters/RandomState.h"
-#include "../RLGymSim_CPP/src/Utils/ActionParsers/DiscreteAction.h"
+#include <RLGymSim_CPP/Utils/RewardFunctions/CommonRewards.h>
+#include <RLGymSim_CPP/Utils/RewardFunctions/CombinedReward.h>
+#include <RLGymSim_CPP/Utils/TerminalConditions/NoTouchCondition.h>
+#include <RLGymSim_CPP/Utils/TerminalConditions/GoalScoreCondition.h>
+#include <RLGymSim_CPP/Utils/OBSBuilders/DefaultOBS.h>
+#include <RLGymSim_CPP/Utils/StateSetters/RandomState.h>
+#include <RLGymSim_CPP/Utils/ActionParsers/DiscreteAction.h>
 
 using namespace RLGPC; // RLGymPPO
 using namespace RLGSC; // RLGymSim
@@ -105,7 +105,7 @@ int main() {
 	int tsPerItr = 100 * 1000;
 	cfg.timestepsPerIteration = tsPerItr;
 	cfg.ppo.batchSize = tsPerItr;
-	cfg.ppo.miniBatchSize = 100 * 1000; // Lower this if too much VRAM is being allocated
+	cfg.ppo.miniBatchSize = 50 * 1000; // Lower this if too much VRAM is being allocated
 	cfg.expBufferSize = tsPerItr * 3;
 	
 	// This is just set to 1 to match rlgym-ppo example
@@ -119,6 +119,10 @@ int main() {
 	// Decently-strong learning rate to start, may start to be too high around 50m-100m steps
 	cfg.ppo.policyLR = 2e-3;
 	cfg.ppo.criticLR = 2e-3;
+
+	// TEMP
+	cfg.ppo.criticLayerSizes = { 2048, 2048, 2048, 2048, 2048 };
+	cfg.sendMetrics = false;
 
 	// Make the learner with the environment creation function and the config we just made
 	Learner learner = Learner(EnvCreateFunc, cfg);

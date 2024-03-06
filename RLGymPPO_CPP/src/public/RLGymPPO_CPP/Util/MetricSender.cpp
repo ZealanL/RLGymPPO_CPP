@@ -3,7 +3,6 @@
 #include "../../libsrc/json/nlohmann/json.hpp"
 #include "Timer.h"
 
-#include <pybind11/embed.h>
 namespace py = pybind11;
 
 using namespace RLGPC;

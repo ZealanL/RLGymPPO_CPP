@@ -1,5 +1,5 @@
 #include "ThreadAgentManager.h"
-#include "../Util/Timer.h"
+#include <RLGymPPO_CPP/Util/Timer.h>
 
 void RLGPC::ThreadAgentManager::CreateAgents(EnvCreateFn func, int amount, int gamesPerAgent) {
 	for (int i = 0; i < amount; i++) {

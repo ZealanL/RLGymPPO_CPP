@@ -1,5 +1,5 @@
 #pragma once
-#include "../Lists.h"
+#include <RLGymPPO_CPP/Lists.h>
 
 #include <torch/nn/modules/container/sequential.h>
 

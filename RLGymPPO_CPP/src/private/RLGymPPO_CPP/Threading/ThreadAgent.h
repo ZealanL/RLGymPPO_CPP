@@ -1,16 +1,9 @@
 #pragma once
 #include "../PPO/DiscretePolicy.h"
-#include "GameInst.h"
+#include <RLGymPPO_CPP/Threading/GameInst.h>
 #include "GameTrajectory.h"
 
 namespace RLGPC {
-	// Environment creation func for each ThreadAgent
-	struct EnvCreateResult {
-		RLGSC::Match* match;
-		RLGSC::Gym* gym;
-	};
-	typedef std::function<EnvCreateResult()> EnvCreateFn;
-
 	class ThreadAgent {
 	public:
 

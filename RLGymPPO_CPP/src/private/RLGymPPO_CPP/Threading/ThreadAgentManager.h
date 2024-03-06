@@ -1,9 +1,9 @@
 #pragma once
 #include "ThreadAgent.h"
 #include "../PPO/ExperienceBuffer.h"
-#include "../Util/Report.h"
-#include "../Util/WelfordRunningStat.h"
-#include "../Util/Timer.h"
+#include <RLGymPPO_CPP/Util/Report.h>
+#include <RLGymPPO_CPP/Util/WelfordRunningStat.h>
+#include <RLGymPPO_CPP/Util/Timer.h>
 
 namespace RLGPC {
 	class ThreadAgentManager {

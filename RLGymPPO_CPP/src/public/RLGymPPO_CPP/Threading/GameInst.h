@@ -6,6 +6,13 @@
 namespace RLGPC {
 	typedef std::function<void(class GameInst*, const RLGSC::Gym::StepResult&, Report&)> StepCallback;
 
+	// Environment creation func for each ThreadAgent
+	struct EnvCreateResult {
+		RLGSC::Match* match;
+		RLGSC::Gym* gym;
+	};
+	typedef std::function<EnvCreateResult()> EnvCreateFn;
+
 	class GameInst {
 	public:
 		RLGSC::Gym* gym;
