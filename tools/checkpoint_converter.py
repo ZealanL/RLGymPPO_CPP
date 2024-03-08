@@ -62,6 +62,9 @@ def main():
 		policy = DiscreteFF(policy_inputs, policy_outputs, policy_sizes, device)
 		critic = ValueEstimator(critic_inputs, critic_sizes, device)
 		
+		policy_optim = torch.optim.Adam(policy.parameters())
+		critic_optim = torch.optim.Adam(critic.parameters())
+		
 		print("Applying state dicts...")
 		
 		policy.load_state_dict(policy_state_dict)
@@ -76,12 +79,21 @@ def main():
 		torch.jit.save(policy_ts, output_path + "/PPO_POLICY.lt")
 		torch.jit.save(critic_ts, output_path + "/PPO_CRITIC.lt")
 		
+		# Write blank files
+		open(output_path + "/PPO_POLICY_OPTIM.lt", "w")
+		open(output_path + "/PPO_CRITIC_OPTIM.lt", "w")
+		
 	else:
+		print("Loading models...")
 		policy = torch.jit.load(os.path.join(path, "PPO_POLICY.lt"))
 		critic = torch.jit.load(os.path.join(path, "PPO_CRITIC.lt"))
 		
-		policy_optim = torch.jit.load(os.path.join(path, "PPO_POLICY_OPTIM.lt"))
-		critic_optim = torch.jit.load(os.path.join(path, "PPO_CRITIC_OPTIM.lt"))
+		policy_optim = torch.optim.Adam(policy.parameters())
+		critic_optim = torch.optim.Adam(critic.parameters())
+		
+		# TODO: Why doesn't this work
+		#policy_optim = torch.jit.load(os.path.join(path, "PPO_POLICY_OPTIM.lt"))
+		#critic_optim = torch.jit.load(os.path.join(path, "PPO_CRITIC_OPTIM.lt"))
 		
 		output_path = "python_checkpoint"
 		os.makedirs(output_path, exist_ok = True)
@@ -97,6 +109,10 @@ def main():
 	print(
 		"Done! Partial " + ("RLGymPPO_CPP" if to_cpp else "rlgym-ppo") + 
 		" checkpoint generated at \"" + output_path + "\"."
+	)
+	print(
+		"WARNING: Optimizer transfer is not fully supported, so optimizers will be reset.\n" + 
+		"Training may take a small amount of time to re-gain momentum."
 	)
 	print("NOTE: State JSON not included (just make a new one and copy over the vars you want).")
 	print("NOTE: Make sure the obs/actions/model sizes all match.")
