@@ -120,9 +120,11 @@ int main() {
 	cfg.ppo.policyLR = 2e-3;
 	cfg.ppo.criticLR = 2e-3;
 
-	// TEMP
-	cfg.ppo.criticLayerSizes = { 2048, 2048, 2048, 2048, 2048 };
-	cfg.sendMetrics = false;
+	// Default model size
+	cfg.ppo.policyLayerSizes = { 256, 256, 256 };
+	cfg.ppo.criticLayerSizes = { 256, 256, 256 };
+	
+	cfg.sendMetrics = true;
 
 	// Make the learner with the environment creation function and the config we just made
 	Learner learner = Learner(EnvCreateFunc, cfg);
