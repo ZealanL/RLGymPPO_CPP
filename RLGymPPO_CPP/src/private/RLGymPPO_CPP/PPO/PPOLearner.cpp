@@ -257,13 +257,22 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 
 	if (load) {
 		try {
-			torch::serialize::InputArchive policyOptArchive;
-			policyOptArchive.load_from((folderPath / FILE_NAMES[2]).string(), learner->device);
-			learner->policyOptimizer->load(policyOptArchive);
+			for (int i = 0; i < 2; i++) {
+				auto path = folderPath / FILE_NAMES[2 + i];
 
-			torch::serialize::InputArchive valueOptArchive;
-			valueOptArchive.load_from((folderPath / FILE_NAMES[3]).string(), learner->device);
-			learner->valueOptimizer->load(valueOptArchive);
+				{ // Check if empty
+					std::ifstream testStream = std::ifstream(path, std::istream::ate | std::ios::binary);
+					if (testStream.tellg() == 0) {
+						RG_LOG("WARNING: Saved optimizer is empty, optimizer will be reset");
+						continue;
+					}
+				}
+
+				torch::serialize::InputArchive policyOptArchive;
+				policyOptArchive.load_from(path.string(), learner->device);
+				(i ? learner->valueOptimizer : learner->policyOptimizer)->load(policyOptArchive);
+			}
+
 		} catch (std::exception& e) {
 			RG_ERR_CLOSE(
 				"Failed to load optimizers, exception: " << e.what() << "\n" <<
@@ -271,13 +280,11 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 			);
 		}
 	} else {
-		torch::serialize::OutputArchive policyOptArchive;
-		learner->policyOptimizer->save(policyOptArchive);
-		policyOptArchive.save_to((folderPath / FILE_NAMES[2]).string());
-
-		torch::serialize::OutputArchive valueOptArchive;
-		learner->valueOptimizer->save(valueOptArchive);
-		valueOptArchive.save_to((folderPath / FILE_NAMES[3]).string());
+		for (int i = 0; i < 2; i++) {
+			torch::serialize::OutputArchive policyOptArchive;
+			(i ? learner->valueOptimizer : learner->policyOptimizer)->save(policyOptArchive);
+			policyOptArchive.save_to((folderPath / FILE_NAMES[2 + i]).string());
+		}
 	}
 }
 
@@ -293,7 +300,6 @@ void RLGPC::PPOLearner::LoadFrom(std::filesystem::path folderPath)  {
 
 	TorchLoadSaveAll(this, folderPath, true);
 	
-
 	UpdateLearningRates(config.policyLR, config.criticLR);
 }
 
