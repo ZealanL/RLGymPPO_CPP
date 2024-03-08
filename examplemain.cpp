@@ -133,7 +133,8 @@ int main() {
 	cfg.ppo.policyLayerSizes = { 256, 256, 256 };
 	cfg.ppo.criticLayerSizes = { 256, 256, 256 };
 	
-	cfg.sendMetrics = true;
+	cfg.sendMetrics = true; // Send metrics
+	cfg.renderMode = false; // Don't render
 
 	// Make the learner with the environment creation function and the config we just made
 	Learner learner = Learner(EnvCreateFunc, cfg);

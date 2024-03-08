@@ -4,6 +4,7 @@
 #include <RLGymPPO_CPP/Util/Report.h>
 #include <RLGymPPO_CPP/Util/WelfordRunningStat.h>
 #include <RLGymPPO_CPP/Util/Timer.h>
+#include <RLGymPPO_CPP/Util/RenderSender.h>
 
 namespace RLGPC {
 	class ThreadAgentManager {
@@ -15,6 +16,9 @@ namespace RLGPC {
 		bool standardizeOBS, autocastInference;
 		uint64_t maxCollect;
 		torch::Device device;
+
+		RenderSender* renderSender = NULL;
+		float renderTimeScale = 1.f;
 
 		bool disableCollection = false; // Prevents new steps from being started
 

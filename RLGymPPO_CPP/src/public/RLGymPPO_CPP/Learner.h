@@ -1,9 +1,9 @@
 #pragma once
-//#include "PPO/PPOLearner.h"
-//#include "Threading/ThreadAgentManager.h"
+
 #include "Threading/GameInst.h"
 #include "Util/WelfordRunningStat.h"
 #include "Util/MetricSender.h"
+#include "Util/RenderSender.h"
 #include "LearnerConfig.h"
 
 namespace RLGPC {
@@ -20,6 +20,7 @@ namespace RLGPC {
 		class ExperienceBuffer* expBuffer;
 		EnvCreateFn envCreateFn;
 		MetricSender* metricSender;
+		RenderSender* renderSender;
 
 		int obsSize;
 		int actionAmount;

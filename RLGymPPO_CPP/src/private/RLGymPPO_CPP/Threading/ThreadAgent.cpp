@@ -30,6 +30,10 @@ void _RunFunc(ThreadAgent* ta) {
 	auto device = mgr->device;
 	bool autocast = mgr->autocastInference;
 
+	bool render = mgr->renderSender;
+
+	Timer stepTimer = {};
+
 	// Start games
 	for (auto game : games)
 		game->Start();
@@ -38,6 +42,9 @@ void _RunFunc(ThreadAgent* ta) {
 	torch::Tensor curObsTensor = MakeGamesOBSTensor(games);
 
 	while (ta->shouldRun) {
+
+		if (render)
+			stepTimer.Reset();
 
 		// Don't run if we reached our step limit
 		while (ta->stepsCollected > ta->maxCollect)
@@ -56,7 +63,8 @@ void _RunFunc(ThreadAgent* ta) {
 		if (autocast) RG_AUTOCAST_ON();
 		auto actionResults = mgr->policy->GetAction(curObsTensorDevice);
 		if (autocast) RG_AUTOCAST_OFF();
-		ta->times.policyInferTime += policyInferTimer.Elapsed();
+		float policyInferTime = policyInferTimer.Elapsed();
+		ta->times.policyInferTime += policyInferTime;
 
 		// Step the gym with the actions we got
 		Timer gymStepTimer = {};
@@ -81,46 +89,69 @@ void _RunFunc(ThreadAgent* ta) {
 		// Make sure we got the end of actions
 		// Otherwise there's a wrong number of actions for whatever reason
 		assert(actionsOffset == actionResults.action.size(0));
-		ta->times.envStepTime += gymStepTimer.Elapsed();
+		float envStepTime = gymStepTimer.Elapsed();
+		ta->times.envStepTime += envStepTime;
 
 		// Update our tensor storing the next observation after the step, from each gym
 		torch::Tensor nextObsTensor = MakeGamesOBSTensor(games);
 
-		// Steps complete, add all timestep data to our trajectories, for each game
-		Timer trajAppendTimer = {};
-		ta->trajMutex.lock();
-		for (int i = 0, actionsOffset = 0; i < numGames; i++) {
-			int numPlayers = games[i]->match->playerAmount;
+		if (!render) {
+			// Steps complete, add all timestep data to our trajectories, for each game
+			Timer trajAppendTimer = {};
+			ta->trajMutex.lock();
+			for (int i = 0, actionsOffset = 0; i < numGames; i++) {
+				int numPlayers = games[i]->match->playerAmount;
 
-			auto& stepResult = stepResults[i];
+				auto& stepResult = stepResults[i];
 
-			float done = (float)stepResult.done;
-			float truncated = (float)false;
+				float done = (float)stepResult.done;
+				float truncated = (float)false;
 
-			auto tDone = torch::tensor(done);
-			auto tTruncated = torch::tensor(truncated);
-			auto states = curObsTensor[i];
-			auto nextStates = nextObsTensor[i];
+				auto tDone = torch::tensor(done);
+				auto tTruncated = torch::tensor(truncated);
+				auto states = curObsTensor[i];
+				auto nextStates = nextObsTensor[i];
 
-			for (int j = 0; j < numPlayers; j++) {
-				ta->trajectories[i][j].AppendSingleStep(
-					{
-						states[j],
-						actionResults.action[actionsOffset + j],
-						actionResults.logProb[actionsOffset + j],
-						torch::tensor(stepResult.reward[j]),
-						nextStates[j],
-						tDone,
-						tTruncated
-					}
-				);
+				for (int j = 0; j < numPlayers; j++) {
+					ta->trajectories[i][j].AppendSingleStep(
+						{
+							states[j],
+							actionResults.action[actionsOffset + j],
+							actionResults.logProb[actionsOffset + j],
+							torch::tensor(stepResult.reward[j]),
+							nextStates[j],
+							tDone,
+							tTruncated
+						}
+					);
+				}
+
+				ta->stepsCollected += numPlayers;
+				actionsOffset += numPlayers;
 			}
-			
-			ta->stepsCollected += numPlayers;
-			actionsOffset += numPlayers;
+			ta->trajMutex.unlock();
+			ta->times.trajAppendTime += trajAppendTimer.Elapsed();
+		} else {
+			// Update renderer
+			auto renderSender = mgr->renderSender;
+			auto renderGame = games[0];
+			renderSender->Send(renderGame->gym->prevState, RLGSC::ActionSet());
+
+			// Delay for render
+			// TODO: Somewhat dumb system using static variables
+			static auto lastRenderTime = std::chrono::high_resolution_clock::now();
+			auto durationSince = std::chrono::high_resolution_clock::now() - lastRenderTime;
+			lastRenderTime = std::chrono::high_resolution_clock::now();
+
+			int64_t micsSince = std::chrono::duration_cast<std::chrono::microseconds>(durationSince).count();
+
+			double timeTaken = stepTimer.Elapsed();
+			double targetTime = (1/120.0) * renderGame->gym->tickSkip * mgr->renderTimeScale;
+			double sleepTime = RS_MAX(targetTime - timeTaken, 0);
+			int64_t sleepMics = (int64_t)(sleepTime * 1000.0 * 1000.0);
+
+			std::this_thread::sleep_for(std::chrono::microseconds(sleepMics));
 		}
-		ta->trajMutex.unlock();
-		ta->times.trajAppendTime += trajAppendTimer.Elapsed();
 
 		// Now that the step is done, our next OBS becomes our current
 		curObsTensor = nextObsTensor;

@@ -1,16 +1,14 @@
 #include "MetricSender.h"
 
-#include "../../libsrc/json/nlohmann/json.hpp"
 #include "Timer.h"
 
 namespace py = pybind11;
-
 using namespace RLGPC;
 
 RLGPC::MetricSender::MetricSender(std::string _projectName, std::string _groupName, std::string _runName, std::string runID) :
 	projectName(_projectName), groupName(_groupName), runName(_runName) {
 
-	RG_LOG("Initializing MetricSender..");
+	RG_LOG("Initializing MetricSender...");
 
 	try {
 		pyMod = py::module::import("python_scripts.metric_receiver");
@@ -31,8 +29,6 @@ RLGPC::MetricSender::MetricSender(std::string _projectName, std::string _groupNa
 }
 
 void RLGPC::MetricSender::Send(const Report& report) {
-	using namespace nlohmann;
-
 	py::dict reportDict = {};
 
 	for (auto& pair : report.data)

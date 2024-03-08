@@ -25,6 +25,11 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 
 	RG_LOG("Learner::Learner():");
 	
+	if (config.renderMode && (config.numThreads > 1 || config.numGamesPerThread > 1)) {
+		RG_LOG("\tRender mode is enabed, overriding numThreads and numGamesPerThread to 1.");
+		config.numThreads = config.numGamesPerThread = 1;
+	}
+
 	if (config.saveFolderAddUnixTimestamp && !config.checkpointSaveFolder.empty())
 		config.checkpointSaveFolder += "-" + std::to_string(time(0));
 
@@ -104,6 +109,14 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 		metricSender = new MetricSender(config.metricsProjectName, config.metricsGroupName, config.metricsRunName, runID);
 	} else {
 		metricSender = NULL;
+	}
+
+	if (config.renderMode) {
+		renderSender = new RenderSender();
+		agentMgr->renderSender = renderSender;
+		agentMgr->renderTimeScale = config.renderTimeScale;
+	} else {
+		renderSender = NULL;
 	}
 }
 
@@ -500,5 +513,6 @@ RLGPC::Learner::~Learner() {
 	delete agentMgr;
 	delete expBuffer;
 	delete metricSender;
+	delete renderSender;
 	pybind11::finalize_interpreter();
 }

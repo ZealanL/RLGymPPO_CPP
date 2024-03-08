@@ -14,8 +14,11 @@ namespace RLGPC {
 		int numThreads = 8;
 		int numGamesPerThread = 16;
 		int minInferenceSize = 80;
-		bool render = false;
-		int renderDelayMS = 0;
+
+		bool renderMode = false;
+		// If renderMode, this is the scaling of time for the game
+		// 1.0 = Simulate the game at real time
+		float renderTimeScale = 1.5f; 
 
 		// Set to 0 to disable
 		uint64_t timestepLimit = 0;
@@ -57,8 +60,8 @@ namespace RLGPC {
 		// Send metrics to the python metrics receiver
 		// The receiver can then log them to wandb or whatever
 		bool sendMetrics = true;
-		std::string metricsProjectName = "rlgymppo-cpp"; // Run name for the python metrics receiver
-		std::string metricsGroupName = "unnamed-runs"; // Run name for the python metrics receiver
+		std::string metricsProjectName = "rlgymppo-cpp"; // Project name for the python metrics receiver
+		std::string metricsGroupName = "unnamed-runs"; // Group name for the python metrics receiver
 		std::string metricsRunName = "rlgymppo-cpp-run"; // Run name for the python metrics receiver
 		
 	};
