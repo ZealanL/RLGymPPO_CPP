@@ -240,10 +240,10 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 
 	constexpr const char* FILE_NAMES[] = {
 		"PPO_POLICY.lt",
-		"PPO_VALUE_NET.lt",
+		"PPO_CRITIC.lt",
 
-		"PPO_POLICY_OPTIMIZER.lt",
-		"PPO_VALUE_NET_OPTIMIZER.lt",
+		"PPO_POLICY_OPTIM.lt",
+		"PPO_CRITIC_OPTIM.lt",
 	};
 
 	if (load) {
@@ -286,19 +286,13 @@ void RLGPC::PPOLearner::SaveTo(std::filesystem::path folderPath) {
 	TorchLoadSaveAll(this, folderPath, false);
 }
 
-void RLGPC::PPOLearner::LoadFrom(std::filesystem::path folderPath, bool isFromPython)  {
+void RLGPC::PPOLearner::LoadFrom(std::filesystem::path folderPath)  {
 	RG_LOG("PPOLearner(): Loading models from: " << folderPath);
 	if (!std::filesystem::is_directory(folderPath))
 		RG_ERR_CLOSE("PPOLearner:LoadFrom(): Path " << folderPath << " is not a valid directory");
 
-	if (isFromPython) {
-		TorchFuncs::LoadStateDict(policy, folderPath / "PPO_POLICY.pt");
-		TorchFuncs::LoadStateDict(valueNet, folderPath / "PPO_VALUE_NET.pt");
-
-		// TODO: Load optimizer
-	} else {
-		TorchLoadSaveAll(this, folderPath, true);
-	}
+	TorchLoadSaveAll(this, folderPath, true);
+	
 
 	UpdateLearningRates(config.policyLR, config.criticLR);
 }

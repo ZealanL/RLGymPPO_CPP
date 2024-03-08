@@ -241,7 +241,7 @@ void RLGPC::Learner::Load() {
 		std::filesystem::path loadFolder = config.checkpointLoadFolder / std::to_string(highest);
 		RG_LOG(" > Loading checkpoint " << loadFolder << "...");
 		LoadStats(loadFolder / STATS_FILE_NAME);
-		ppo->LoadFrom(loadFolder, false);
+		ppo->LoadFrom(loadFolder);
 		RG_LOG(" > Done.");
 	} else {
 		RG_LOG(" > No checkpoints found, starting new model.")

@@ -31,7 +31,7 @@ namespace RLGPC {
 		void Learn(ExperienceBuffer* expBuffer, Report& report);
 
 		void SaveTo(std::filesystem::path folderPath);
-		void LoadFrom(std::filesystem::path folderPath, bool isFromPython);
+		void LoadFrom(std::filesystem::path folderPath);
 
 		void UpdateLearningRates(float policyLR, float criticLR);
 	};
