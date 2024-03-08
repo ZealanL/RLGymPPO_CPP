@@ -59,8 +59,17 @@ EnvCreateResult EnvCreateFunc() {
 
 	auto rewards = new CombinedReward( // Format is { RewardFunc(), weight }
 		{ 
-			{ new FaceBallReward(), 0.1f }, // 10% of reward for facing the ball
-			{ new VelocityPlayerToBallReward(), 0.9f } // 90% of reward for going towards the ball supersonic
+			// Small reward for facing the ball
+			{ new FaceBallReward(), 0.1f }, 
+
+			// Moderate reward for going towards the ball
+			{ new VelocityPlayerToBallReward(), 0.5f }, 
+
+			// Bigger reward for having the ball go towards the goal
+			{ new VelocityBallToGoalReward(), 1.0f }, 
+
+			// Giant reward for scoring, giant penalty for being scored on
+			{ new EventReward({.teamGoal = 1.f, .concede = -1.f}), 50.f },
 		}
 	);
 
