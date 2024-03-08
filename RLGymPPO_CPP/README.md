@@ -15,6 +15,11 @@ According to a few different learning tests, RLGymPPO_CPP and RLGym-PPO have no 
 Most of these tests involved training on simple and complex rewards for up to 10m steps,
 and more tests should probably be ran for much longer training sessions to confirm.
 
+## Transferring models between C++ and Python
+You can do this using the script `tools/checkpoint_converter.py`
+
+This script is very new, so if you find any bugs, let me know
+
 ## Dependencies 
  - LibTorch (ideally with CUDA support)
     - Download from https://pytorch.org/get-started/locally/ by selecting "C++/Java" as your language
