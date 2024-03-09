@@ -104,9 +104,8 @@ int main() {
 	// Make configuration for the learner
 	LearnerConfig cfg = {};
 
-	// Play around with these to see what the optimal is for your machine
-	// I personally find having less threads than my CPU thread count actually yields more SPS
-	cfg.numThreads = 8;
+	// Play around with these to see what the optimal is for your machine, more isn't always better
+	cfg.numThreads = 16;
 	cfg.numGamesPerThread = 24;
 
 	// We want a large itr/batch size
