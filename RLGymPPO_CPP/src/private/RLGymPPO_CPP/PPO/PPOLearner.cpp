@@ -41,7 +41,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	auto policyBefore = _CopyParams(policy);
 	auto criticBefore = _CopyParams(valueNet);
 
-	float batchSizeRatio = config.miniBatchSize / config.batchSize;
+	float batchSizeRatio = config.miniBatchSize / (float)config.batchSize;
 
 	Timer totalTimer = {};
 	for (int epoch = 0; epoch < config.epochs; epoch++) {
@@ -92,7 +92,6 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				auto clipped = clamp(
 					ratio, 1 - config.clipRange, 1 + config.clipRange
 				);
-
 				vals = vals.view_as(targetValues);
 
 				// Compute policy loss
@@ -115,7 +114,6 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 					clipFraction = mean((abs(ratio - 1) > config.clipRange).to(kFloat)).cpu().item<float>();
 					clipFractions.push_back(clipFraction);
 				}
-				
 
 				timer.Reset();
 				// NOTE: These gradient calls are a substantial portion of learn time
@@ -242,8 +240,8 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 		"PPO_POLICY.lt",
 		"PPO_CRITIC.lt",
 
-		"PPO_POLICY_OPTIM.lt",
-		"PPO_CRITIC_OPTIM.lt",
+		"PPO_POLICY_OPTIM.rlps",
+		"PPO_CRITIC_OPTIM.rlps",
 	};
 
 	if (load) {
@@ -255,6 +253,7 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 	TorchLoadSaveSeq(learner->policy->seq, folderPath / FILE_NAMES[0], learner->device, load);
 	TorchLoadSaveSeq(learner->valueNet->seq, folderPath / FILE_NAMES[1], learner->device, load);
 
+	// Load or save optimizers
 	if (load) {
 		try {
 			for (int i = 0; i < 2; i++) {
@@ -268,9 +267,8 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 					}
 				}
 
-				torch::serialize::InputArchive policyOptArchive;
-				policyOptArchive.load_from(path.string(), learner->device);
-				(i ? learner->valueOptimizer : learner->policyOptimizer)->load(policyOptArchive);
+				DataStreamIn in = DataStreamIn(path, false);
+				RLGPC::TorchFuncs::DeserializeOptimizer((i ? learner->valueOptimizer : learner->policyOptimizer), in);
 			}
 
 		} catch (std::exception& e) {
@@ -281,9 +279,9 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 		}
 	} else {
 		for (int i = 0; i < 2; i++) {
-			torch::serialize::OutputArchive policyOptArchive;
-			(i ? learner->valueOptimizer : learner->policyOptimizer)->save(policyOptArchive);
-			policyOptArchive.save_to((folderPath / FILE_NAMES[2 + i]).string());
+			DataStreamOut out = {};
+			RLGPC::TorchFuncs::SerializeOptimizer((i ? learner->valueOptimizer : learner->policyOptimizer), out);
+			out.WriteToFile(folderPath / FILE_NAMES[2 + i], false);
 		}
 	}
 }
@@ -299,7 +297,7 @@ void RLGPC::PPOLearner::LoadFrom(std::filesystem::path folderPath)  {
 		RG_ERR_CLOSE("PPOLearner:LoadFrom(): Path " << folderPath << " is not a valid directory");
 
 	TorchLoadSaveAll(this, folderPath, true);
-	
+
 	UpdateLearningRates(config.policyLR, config.criticLR);
 }
 

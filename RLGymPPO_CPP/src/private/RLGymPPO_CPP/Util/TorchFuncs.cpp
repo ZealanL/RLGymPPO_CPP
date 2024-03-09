@@ -63,43 +63,58 @@ torch::Tensor RLGPC::TorchFuncs::ConcatSafe(torch::Tensor a, torch::Tensor b) {
 	}
 }
 
-void RLGPC::TorchFuncs::LoadStateDict(torch::nn::Module* mod, std::filesystem::path path) {
-	constexpr const char* ERROR_PREFIX = "TorchFuncs::LoadStateDict(): ";
+void RLGPC::TorchFuncs::SerializeOptimizer(torch::optim::Adam* optim, DataStreamOut& out) {
+	out.Write<uint32_t>(OPTIMIZER_SERIALIZE_PREFIX);
+	auto& groups = optim->param_groups();
+	out.Write<uint32_t>(groups.size());
+	for (auto& group : groups) {
+		auto& params = group.params();
+		out.Write<uint32_t>(params.size());
+		for (auto param : params) {
+			auto flatParam = param.cpu().flatten();
+			out.Write<uint64_t>(flatParam.numel());
 
-	// From: https://github.com/pytorch/pytorch/issues/36577#issuecomment-1279666295
+			if (param.scalar_type() != torch::ScalarType::Float)
+				RG_ERR_CLOSE("TorchFuncs::SerializeOptimizer(): Failed to serialize param of non-float type");
 
-	std::ifstream input(path, std::ios::binary);
-	input >> std::noskipws;
-	if (!input.good())
-		RG_ERR_CLOSE(ERROR_PREFIX << "Cannot open input file at " << path);
-
-	std::vector<char> bytes(
-		(std::istreambuf_iterator<char>(input)),
-		(std::istreambuf_iterator<char>())
-	);
-
-	try {
-		c10::IValue depickled = torch::pickle_load(bytes);
-		c10::Dict<c10::IValue, c10::IValue> weights = depickled.toGenericDict();
-
-		const auto& modelParams = mod->named_parameters();
-		std::vector<std::string> paramNames;
-		for (auto const& w : modelParams) {
-			paramNames.push_back(w.key());
+			out.WriteBytes(flatParam.data_ptr<float>(), flatParam.numel() * sizeof(float));
 		}
+	}
+}
 
-		RG_NOGRAD;
-		for (auto const& w : weights) {
-			std::string name = w.key().toStringRef();
-			at::Tensor param = w.value().toTensor();
+void RLGPC::TorchFuncs::DeserializeOptimizer(torch::optim::Adam* optim, DataStreamIn& in) {
+	constexpr const char* ERR_PREFIX = "TorchFuncs::DeserializeOptimizer(): ";
+	RG_NOGRAD;
 
-			if (std::find(paramNames.begin(), paramNames.end(), name) != paramNames.end()) {
-				modelParams.find(name)->copy_(param);
-			} else {
-				RS_ERR_CLOSE(ERROR_PREFIX << "Cannot find model param name \"" << name << "\"");
-			}
+	uint32_t key = in.Read<uint32_t>();
+	if (key != OPTIMIZER_SERIALIZE_PREFIX)
+		RS_ERR_CLOSE(ERR_PREFIX << "File is not a valid serialized optimizer (bad prefix)");
+
+	auto& groups = optim->param_groups();
+	uint32_t targetGroupsSize = in.Read<uint32_t>();
+	if (targetGroupsSize != groups.size())
+		RG_ERR_CLOSE(ERR_PREFIX << "Mismatched groups size (" << targetGroupsSize << "/" << groups.size() << ")");
+
+	for (auto& group : groups) {
+		auto& params = group.params();
+		uint32_t targetParamsSize = in.Read<uint32_t>();
+		if (targetParamsSize != params.size())
+			RG_ERR_CLOSE(ERR_PREFIX << "Mismatched params size (" << targetParamsSize << "/" << params.size() << ")");
+		for (auto& param : params) {
+			uint64_t targetSize = in.Read<uint64_t>();
+			if (targetSize != param.numel())
+				RG_ERR_CLOSE(ERR_PREFIX << "Mismatched tensor size (" << targetSize << "/" << params.size() << ")");
+
+			if (param.scalar_type() != torch::ScalarType::Float)
+				RG_ERR_CLOSE(ERR_PREFIX << "Failed to deserialize param of non-float type");
+
+			FList data = FList(targetSize);
+			in.ReadBytes(data.data(), targetSize * sizeof(float));
+
+			auto newParam = torch::tensor(data).reshape_as(param).to(param.device());
+			
+			// Must be in place, param is referenced elsewhere
+			param.copy_(newParam);
 		}
-	} catch (std::exception& e) {
-		RG_ERR_CLOSE(ERROR_PREFIX << "Exception while loading " << path << ":\n" << e.what());
 	}
 }
