@@ -49,7 +49,7 @@ void OnIteration(Learner* learner, Report& allMetrics) {
 
 	allMetrics["player_speed"] = avgPlayerSpeed.Get();
 	allMetrics["ball_touch_ratio"] = avgBallTouchRatio.Get();
-	allMetrics["in_air_ratio"] = avgBallTouchRatio.Get();
+	allMetrics["in_air_ratio"] = avgAirRatio.Get();
 }
 
 // Create the RLGymSim environment for each of our games
