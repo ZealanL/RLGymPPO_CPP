@@ -102,7 +102,9 @@ void RLGPC::ThreadAgentManager::GetMetrics(Report& report) {
 void RLGPC::ThreadAgentManager::ResetMetrics() {
 	for (auto agent : agents) {
 		agent->times = {};
+		agent->gameStepMutex.lock();
 		for (auto game : agent->gameInsts)
 			game->ResetMetrics();
+		agent->gameStepMutex.unlock();
 	}
 }
