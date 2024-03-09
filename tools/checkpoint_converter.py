@@ -1,7 +1,9 @@
 import sys
-import torch
 import os
+import struct
 from collections import OrderedDict, namedtuple
+
+import torch
 
 from rlgym_ppo.ppo import DiscreteFF, ValueEstimator
 
@@ -34,6 +36,46 @@ def rename_model_state_dict(state_dict):
 			
 	return state_dict
 
+def read_optimizer_state(optim, path):
+	fin = open(path, 'rb')
+	prefix = struct.unpack('I', fin.read(4))[0]
+	
+	with torch.no_grad():
+		groups = optim.param_groups
+		group_amount = struct.unpack('I', fin.read(4))[0]
+		if len(groups) != group_amount:
+			raise Exception("Bad group count ({} != {})".format(len(groups), group_amount))
+		for group in groups:
+			params = group['params']
+			param_amount = struct.unpack('I', fin.read(4))[0]
+			if len(params) != param_amount:
+				raise Exception("Bad param count ({} != {})".format(len(params), param_amount))
+			for param in params:
+				tensor_size = struct.unpack('Q', fin.read(8))[0]
+				if param.numel() != tensor_size:
+					raise Exception("Bad tensor size ({} != {})".format(param.numel(), tensor_size))
+				
+				new_vals = []
+				for i in range(param.numel()):
+					new_vals.append(struct.unpack('f', fin.read(4))[0])
+				
+				param.copy_(torch.tensor(new_vals).reshape_as(param))
+
+def write_optimizer_state(optim, path):
+	fout = open(path, 'wb')
+	bytes = struct.pack('I', 0xB73AC038) # Write prefix	
+	groups = optim.param_groups
+	bytes += struct.pack('I', len(groups))
+	for group in groups:
+		params = group['params']
+		bytes += struct.pack('I', len(params))
+		for param in params:
+			bytes += struct.pack('Q', param.numel())
+			for val in param.detach().flatten().numpy():
+				bytes += struct.pack('f', val)
+				
+	fout.write(bytes)
+	
 def main():
 
 	if len(sys.argv) != 3:
@@ -55,6 +97,8 @@ def main():
 		print("Loading state dicts...")
 		policy_state_dict = torch.load(os.path.join(path, "PPO_POLICY.pt"))
 		critic_state_dict = torch.load(os.path.join(path, "PPO_VALUE_NET.pt"))
+		policy_optim_state_dict = torch.load(os.path.join(path, "PPO_POLICY_OPTIMIZER.pt"))
+		critic_optim_state_dict = torch.load(os.path.join(path, "PPO_VALUE_NET_OPTIMIZER.pt"))
 		
 		print("Creating models...")
 		policy_inputs, policy_outputs, policy_sizes = model_info_from_dict(policy_state_dict)
@@ -70,6 +114,9 @@ def main():
 		policy.load_state_dict(policy_state_dict)
 		critic.load_state_dict(critic_state_dict)
 		
+		policy_optim.load_state_dict(policy_optim_state_dict)
+		critic_optim.load_state_dict(critic_optim_state_dict)
+		
 		print("Saving for RLGymPPO_CPP...")
 		policy_ts = torch.jit.script(policy.model)
 		critic_ts = torch.jit.script(critic.model)
@@ -78,23 +125,22 @@ def main():
 		os.makedirs(output_path, exist_ok = True)
 		torch.jit.save(policy_ts, output_path + "/PPO_POLICY.lt")
 		torch.jit.save(critic_ts, output_path + "/PPO_CRITIC.lt")
-		
-		# Write blank files
-		open(output_path + "/PPO_POLICY_OPTIM.lt", "w")
-		open(output_path + "/PPO_CRITIC_OPTIM.lt", "w")
+		write_optimizer_state(policy_optim, output_path + "/PPO_POLICY_OPTIM.rlps")
+		write_optimizer_state(critic_optim, output_path + "/PPO_CRITIC_OPTIM.rlps")
 		
 	else:
 		print("Loading models...")
 		policy = torch.jit.load(os.path.join(path, "PPO_POLICY.lt"))
 		critic = torch.jit.load(os.path.join(path, "PPO_CRITIC.lt"))
 		
+		print("Loading optimizers...")
 		policy_optim = torch.optim.Adam(policy.parameters())
 		critic_optim = torch.optim.Adam(critic.parameters())
 		
-		# TODO: Why doesn't this work
-		#policy_optim = torch.jit.load(os.path.join(path, "PPO_POLICY_OPTIM.lt"))
-		#critic_optim = torch.jit.load(os.path.join(path, "PPO_CRITIC_OPTIM.lt"))
-		
+		read_optimizer_state(policy_optim, os.path.join(path, "PPO_POLICY_OPTIM.rlps"))
+		read_optimizer_state(critic_optim, os.path.join(path, "PPO_CRITIC_OPTIM.rlps"))
+
+		print("Saving...")
 		output_path = "python_checkpoint"
 		os.makedirs(output_path, exist_ok = True)
 		
@@ -109,10 +155,6 @@ def main():
 	print(
 		"Done! Partial " + ("RLGymPPO_CPP" if to_cpp else "rlgym-ppo") + 
 		" checkpoint generated at \"" + output_path + "\"."
-	)
-	print(
-		"WARNING: Optimizer transfer is not fully supported, so optimizers will be reset.\n" + 
-		"Training may take a small amount of time to re-gain momentum."
 	)
 	print("NOTE: State JSON not included (just make a new one and copy over the vars you want).")
 	print("NOTE: Make sure the obs/actions/model sizes all match.")
