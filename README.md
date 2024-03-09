@@ -25,5 +25,5 @@ This script is very new, so if you find any bugs, let me know
     - Download from https://pytorch.org/get-started/locally/ by selecting "C++/Java" as your language
     - Place the 'libtorch' folder within the 'RLGymPPO_CPP' folder
     - Pray
- - https://github.com/ZealanL/RLGymSim_CPP (already included a submodule)
- - https://github.com/nlohmann/json (already included in source)
+ - https://github.com/ZealanL/RLGymSim_CPP (already included)
+ - https://github.com/nlohmann/json (already included)
