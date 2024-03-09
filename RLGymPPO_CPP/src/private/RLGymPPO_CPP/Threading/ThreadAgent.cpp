@@ -28,7 +28,6 @@ void _RunFunc(ThreadAgent* ta) {
 	int numGames = ta->numGames;
 
 	auto device = mgr->device;
-	bool autocast = mgr->autocastInference;
 
 	bool render = mgr->renderSender;
 
@@ -40,6 +39,8 @@ void _RunFunc(ThreadAgent* ta) {
 
 	// Will stores our current observations for all our games
 	torch::Tensor curObsTensor = MakeGamesOBSTensor(games);
+
+	bool halfPrec = mgr->policyHalf != NULL;
 
 	while (ta->shouldRun) {
 
@@ -55,14 +56,22 @@ void _RunFunc(ThreadAgent* ta) {
 
 		// Move our current OBS tensor to the device we run the policy on
 		// This conversion time is not counted as a part of policy inference time
-		torch::Tensor curObsTensorDevice = curObsTensor.to(device, true);
+		torch::Tensor curObsTensorDevice;
+		if (halfPrec) {
+			curObsTensorDevice = curObsTensor.to(torch::ScalarType::BFloat16).to(device, true);
+		} else {
+			curObsTensorDevice = curObsTensor.to(device, true);
+		}
 
 		// Infer the policy to get actions for all our agents in all our games
 		Timer policyInferTimer = {};
 		
-		if (autocast) RG_AUTOCAST_ON();
-		auto actionResults = mgr->policy->GetAction(curObsTensorDevice);
-		if (autocast) RG_AUTOCAST_OFF();
+		auto actionResults = (halfPrec ? mgr->policyHalf : mgr->policy)->GetAction(curObsTensorDevice);
+		if (halfPrec) {
+			actionResults.action = actionResults.action.to(torch::ScalarType::Float);
+			actionResults.logProb = actionResults.logProb.to(torch::ScalarType::Float);
+		}
+
 		float policyInferTime = policyInferTimer.Elapsed();
 		ta->times.policyInferTime += policyInferTime;
 

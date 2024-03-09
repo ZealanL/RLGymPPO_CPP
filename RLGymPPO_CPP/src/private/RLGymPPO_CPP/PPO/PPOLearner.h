@@ -13,8 +13,8 @@ namespace RLGPC {
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/ppo/ppo_learner.py
 	class PPOLearner {
 	public:
-		DiscretePolicy* policy;
-		ValueEstimator* valueNet;
+		DiscretePolicy* policy, *policyHalf;
+		ValueEstimator* valueNet, *valueNetHalf;
 		torch::optim::Adam *policyOptimizer, *valueOptimizer;
 		torch::nn::MSELoss valueLossFn;
 

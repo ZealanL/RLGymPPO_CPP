@@ -30,8 +30,6 @@ namespace RLGPC {
 		int maxReturnsPerStatsInc = 150;
 		int stepsPerObsStatsInc = 5;
 
-		bool autocastInference = false; // Enable torch autocast for policy inference (seems bad from my testing)
-
 		PPOLearnerConfig ppo = {};
 
 		float gaeLambda = 0.95f;

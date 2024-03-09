@@ -11,6 +11,20 @@ Tensor _CopyParams(nn::Module* mod) {
 	return torch::nn::utils::parameters_to_vector(mod->parameters()).cpu();
 }
 
+void _CopyModelParamsHalf(nn::Module* from, nn::Module* to) {
+	RG_NOGRAD;
+	try {
+		auto fromParams = from->parameters();
+		auto toParams = to->parameters();
+		for (int i = 0; i < fromParams.size(); i++) {
+			auto scaledParams = fromParams[i].to(ScalarType::BFloat16);
+			toParams[i].copy_(scaledParams, true);
+		}
+	} catch (std::exception& e) {
+		RG_ERR_CLOSE("_CopyModelParamsHalf() exception: " << e.what());
+	}
+}
+
 RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConfig _config, Device _device) 
 	: config(_config), device(_device) {
 
@@ -19,14 +33,27 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 
 	policy = new DiscretePolicy(obsSpaceSize, actSpaceSize, config.policyLayerSizes, device);
 	valueNet = new ValueEstimator(obsSpaceSize, config.criticLayerSizes, device);
+
+	if (config.halfPrecModels) {
+		policyHalf = new DiscretePolicy(obsSpaceSize, actSpaceSize, config.policyLayerSizes, device);
+		valueNetHalf = new ValueEstimator(obsSpaceSize, config.criticLayerSizes, device);
+
+		_CopyModelParamsHalf(policy, policyHalf);
+		_CopyModelParamsHalf(valueNet, valueNetHalf);
+
+		policyHalf->to(ScalarType::BFloat16);
+		valueNetHalf->to(ScalarType::BFloat16);
+	} else {
+		policyHalf = NULL;
+		valueNetHalf = NULL;
+	}
 	policyOptimizer = new optim::Adam(policy->parameters(), optim::AdamOptions(config.policyLR));
 	valueOptimizer = new optim::Adam(valueNet->parameters(), optim::AdamOptions(config.criticLR));
 	valueLossFn = nn::MSELoss();
 }
 
 void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
-	bool autocast = config.autocastLearn;
-	if (autocast) RG_AUTOCAST_ON();
+	bool halfPrec = config.halfPrecModels;
 
 	int
 		numIterations = 0,
@@ -60,6 +87,9 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			policyOptimizer->zero_grad();
 			valueOptimizer->zero_grad();
 
+			// no cast: 4.3s
+			// dumb cast: 2.0s
+
 			for (int mbs = 0; mbs < config.batchSize; mbs += config.miniBatchSize) {
 				Timer timer = {};
 
@@ -69,20 +99,36 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				// Send everything to the device and enforce correct shapes
 				auto acts = batchActs.slice(0, start, stop).to(device, true);
 				auto obs = batchObs.slice(0, start, stop).to(device, true);
+
+				torch::Tensor obsHalf;
+				if (halfPrec)
+					obsHalf = obs.to(ScalarType::BFloat16);
+
 				auto advantages = batchAdvantages.slice(0, start, stop).to(device, true);
 				auto oldProbs = batchOldProbs.slice(0, start, stop).to(device, true);
 				auto targetValues = batchTargetValues.slice(0, start, stop).to(device, true);
-
 				timer.Reset();
-				// Compute value estimates
-				auto vals = valueNet->Forward(obs);
+				torch::Tensor vals;
+				if (halfPrec) {
+					vals = valueNetHalf->Forward(obsHalf);
+					vals = vals.to(ScalarType::Float, false);
+				} else {
+					vals = valueNet->Forward(obs);
+				}
 				report.Accum("PPO Value Estimate Time", timer.Elapsed());
 
 				timer.Reset();
 				// Get policy log probs & entropy
-				DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts);
-				auto logProbs = bpResult.actionLogProbs;
-				auto entropy = bpResult.entropy;
+				torch::Tensor logProbs, entropy;
+				if (halfPrec) {
+					DiscretePolicy::BackpropResult bpResult = policyHalf->GetBackpropData(obsHalf, acts.to(ScalarType::BFloat16));
+					logProbs = bpResult.actionLogProbs.to(ScalarType::Float);
+					entropy = bpResult.entropy.to(ScalarType::Float);
+				} else {
+					DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts);
+					logProbs = bpResult.actionLogProbs;
+					entropy = bpResult.entropy;
+				}
 
 				logProbs = logProbs.view_as(oldProbs);
 				report.Accum("PPO Backprop Data Time", timer.Elapsed());
@@ -135,6 +181,11 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			policyOptimizer->step();
 			valueOptimizer->step();
 
+			if (halfPrec) {
+				_CopyModelParamsHalf(policy, policyHalf);
+				_CopyModelParamsHalf(valueNet, valueNetHalf);
+			}
+
 			numIterations += 1;
 		}
 	}
@@ -177,8 +228,6 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 
 	policyOptimizer->zero_grad();
 	valueOptimizer->zero_grad();
-	
-	if (autocast) RG_AUTOCAST_OFF();
 }
 
 // Get sizes of all parameters in a sequence
@@ -203,7 +252,7 @@ void TorchLoadSaveSeq(torch::nn::Sequential seq, std::filesystem::path path, c10
 			torch::load(seq, streamIn, device);
 		} catch (std::exception& e) {
 			RG_ERR_CLOSE(
-				"Failed to load model, checkpoint may be corrupt.\n" <<
+				"Failed to load model, checkpoint may be corrupt or of different model.\n" <<
 				"Exception: " << e.what()
 			);
 		}
@@ -252,6 +301,11 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 
 	TorchLoadSaveSeq(learner->policy->seq, folderPath / FILE_NAMES[0], learner->device, load);
 	TorchLoadSaveSeq(learner->valueNet->seq, folderPath / FILE_NAMES[1], learner->device, load);
+
+	if (load && learner->config.halfPrecModels) {
+		_CopyModelParamsHalf(learner->policy, learner->policyHalf);
+		_CopyModelParamsHalf(learner->valueNet, learner->valueNetHalf);
+	}
 
 	// Load or save optimizers
 	if (load) {

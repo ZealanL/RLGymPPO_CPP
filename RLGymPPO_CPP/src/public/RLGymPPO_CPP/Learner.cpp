@@ -93,8 +93,8 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 
 	RG_LOG("\tCreating agent manager...");
 	agentMgr = new ThreadAgentManager(
-		ppo->policy, expBuffer, 
-		config.standardizeOBS, config.autocastInference, 
+		ppo->policy, ppo->policyHalf, expBuffer, 
+		config.standardizeOBS,  
 		(uint64_t)(config.timestepsPerIteration * 1.5f),
 		device
 	);

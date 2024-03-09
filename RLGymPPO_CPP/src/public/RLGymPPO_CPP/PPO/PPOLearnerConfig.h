@@ -14,6 +14,8 @@ namespace RLGPC {
 		float clipRange = 0.2f;
 		int miniBatchSize = 0; // Set to 0 to just use batchSize
 
-		bool autocastLearn = true; // Enable torch autocast for PPO learning
+		// Enable half-precision versions of the models where beneficial
+		// Highy recommended, speeds up PPO learn by ~90% on larger models
+		bool halfPrecModels = true; 
 	};
 }

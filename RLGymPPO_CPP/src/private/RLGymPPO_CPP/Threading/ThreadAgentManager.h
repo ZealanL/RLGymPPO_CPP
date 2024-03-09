@@ -9,11 +9,11 @@
 namespace RLGPC {
 	class ThreadAgentManager {
 	public:
-		DiscretePolicy* policy;
+		DiscretePolicy* policy, *policyHalf;
 		std::vector<ThreadAgent*> agents;
 		ExperienceBuffer* expBuffer;
 		std::mutex expBufferMutex = {};
-		bool standardizeOBS, autocastInference;
+		bool standardizeOBS;
 		uint64_t maxCollect;
 		torch::Device device;
 
@@ -26,8 +26,11 @@ namespace RLGPC {
 		double lastIterationTime = 0;
 		WelfordRunningStat obsStats;
 
-		ThreadAgentManager(DiscretePolicy* policy, ExperienceBuffer* expBuffer, bool standardizeOBS, bool autocastInference, uint64_t maxCollect, torch::Device device) : 
-			policy(policy), expBuffer(expBuffer), standardizeOBS(standardizeOBS), autocastInference(autocastInference), maxCollect(maxCollect), device(device) {}
+		ThreadAgentManager(
+			DiscretePolicy* policy, DiscretePolicy* policyHalf, ExperienceBuffer* expBuffer, 
+			bool standardizeOBS, uint64_t maxCollect, torch::Device device) : 
+			policy(policy), policyHalf(policyHalf), expBuffer(expBuffer), 
+			standardizeOBS(standardizeOBS), maxCollect(maxCollect), device(device) {}
 
 		RG_NO_COPY(ThreadAgentManager);
 
