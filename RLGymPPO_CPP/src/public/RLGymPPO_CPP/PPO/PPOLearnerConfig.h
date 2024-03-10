@@ -16,7 +16,7 @@ namespace RLGPC {
 
 		// Experimental, improves PPO learn speed
 		// If this causes your learning to collapse, please let me know
-		bool autocastLearn = true;
+		bool autocastLearn = false;
 
 		// Very experimental, uses half-precision versions of models where beneficial
 		bool halfPrecModels = false;
