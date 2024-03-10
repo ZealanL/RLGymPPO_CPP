@@ -27,6 +27,11 @@ namespace RLGSC {
 		bool boostPads[CommonValues::BOOST_LOCATIONS_AMOUNT];
 		bool boostPadsInv[CommonValues::BOOST_LOCATIONS_AMOUNT];
 
+		// Last arena we updated with
+		// Can be used to determine current arena from within reward function, for example
+		// NOTE: Could be null
+		Arena* lastArena = NULL;
+
 		GameState() = default;
 		GameState(Arena* arena) {
 			UpdateFromArena(arena);

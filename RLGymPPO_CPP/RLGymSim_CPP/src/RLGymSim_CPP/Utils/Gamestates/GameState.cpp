@@ -46,6 +46,7 @@ void _BuildBoostPadIndexMap(Arena* arena) {
 }
 
 void RLGSC::GameState::UpdateFromArena(Arena* arena) {
+	lastArena = arena;
 
 	ballState = arena->ball->GetState();
 	ball = PhysObj(ballState);
