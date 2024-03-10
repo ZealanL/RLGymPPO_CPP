@@ -32,6 +32,9 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 	if (config.miniBatchSize == 0)
 		config.miniBatchSize = config.batchSize;
 
+	if (config.batchSize % config.miniBatchSize != 0)
+		RG_ERR_CLOSE("PPOLearner: config.batchSize must be a multiple of config.miniBatchSize");
+
 	policy = new DiscretePolicy(obsSpaceSize, actSpaceSize, config.policyLayerSizes, device);
 	valueNet = new ValueEstimator(obsSpaceSize, config.criticLayerSizes, device);
 
