@@ -16,6 +16,8 @@ at::autocast::clear_cache(); \
 at::autocast::set_enabled(false); \
 }
 
+#define RG_HALFPERC_TYPE torch::ScalarType::BFloat16
+
 namespace RLGPC {
 	// Method from: https://stackoverflow.com/questions/63466847/how-is-it-possible-to-convert-a-stdvectorstdvectordouble-to-a-torchten
 	inline torch::Tensor FLIST2_TO_TENSOR(const FList2& list) {

@@ -58,7 +58,7 @@ void _RunFunc(ThreadAgent* ta) {
 		// This conversion time is not counted as a part of policy inference time
 		torch::Tensor curObsTensorDevice;
 		if (halfPrec) {
-			curObsTensorDevice = curObsTensor.to(torch::ScalarType::BFloat16).to(device, true);
+			curObsTensorDevice = curObsTensor.to(RG_HALFPERC_TYPE).to(device, true);
 		} else {
 			curObsTensorDevice = curObsTensor.to(device, true);
 		}

@@ -1,9 +1,10 @@
 #include "PPOLearner.h"
 
+#include "../Util/TorchFuncs.h"
+
 #include <torch/nn/utils/convert_parameters.h>
 #include <torch/nn/utils/clip_grad.h>
 #include <torch/csrc/api/include/torch/serialize.h>
-#include "../Util/TorchFuncs.h"
 
 using namespace torch;
 
@@ -17,7 +18,7 @@ void _CopyModelParamsHalf(nn::Module* from, nn::Module* to) {
 		auto fromParams = from->parameters();
 		auto toParams = to->parameters();
 		for (int i = 0; i < fromParams.size(); i++) {
-			auto scaledParams = fromParams[i].to(ScalarType::BFloat16);
+			auto scaledParams = fromParams[i].to(RG_HALFPERC_TYPE);
 			toParams[i].copy_(scaledParams, true);
 		}
 	} catch (std::exception& e) {
@@ -41,8 +42,8 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 		_CopyModelParamsHalf(policy, policyHalf);
 		_CopyModelParamsHalf(valueNet, valueNetHalf);
 
-		policyHalf->to(ScalarType::BFloat16);
-		valueNetHalf->to(ScalarType::BFloat16);
+		policyHalf->to(RG_HALFPERC_TYPE);
+		valueNetHalf->to(RG_HALFPERC_TYPE);
 	} else {
 		policyHalf = NULL;
 		valueNetHalf = NULL;
@@ -53,7 +54,11 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 }
 
 void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
+#if 1 // TODO: Doesn't work
+	constexpr bool halfPrec = false;
+#else
 	bool halfPrec = config.halfPrecModels;
+#endif
 
 	int
 		numIterations = 0,
@@ -102,11 +107,12 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 
 				torch::Tensor obsHalf;
 				if (halfPrec)
-					obsHalf = obs.to(ScalarType::BFloat16);
+					obsHalf = obs.to(RG_HALFPERC_TYPE);
 
 				auto advantages = batchAdvantages.slice(0, start, stop).to(device, true);
 				auto oldProbs = batchOldProbs.slice(0, start, stop).to(device, true);
 				auto targetValues = batchTargetValues.slice(0, start, stop).to(device, true);
+
 				timer.Reset();
 				torch::Tensor vals;
 				if (halfPrec) {
@@ -121,7 +127,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				// Get policy log probs & entropy
 				torch::Tensor logProbs, entropy;
 				if (halfPrec) {
-					DiscretePolicy::BackpropResult bpResult = policyHalf->GetBackpropData(obsHalf, acts.to(ScalarType::BFloat16));
+					DiscretePolicy::BackpropResult bpResult = policyHalf->GetBackpropData(obsHalf, acts.to(RG_HALFPERC_TYPE));
 					logProbs = bpResult.actionLogProbs.to(ScalarType::Float);
 					entropy = bpResult.entropy.to(ScalarType::Float);
 				} else {
@@ -165,8 +171,9 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				// NOTE: These gradient calls are a substantial portion of learn time
 				//	From my testing, they are around 61% of learn time
 				//	Results will probably vary heavily depending on model size and GPU strength
-				ppoLoss.backward();
-				valueLoss.backward();
+				RG_LOG("PPOLoss type size: " << ppoLoss.detach().cpu().dtype().itemsize());
+				TorchFuncs::ScaleGrad(ppoLoss, device).backward();
+				TorchFuncs::ScaleGrad(valueLoss, device).backward();
 				report.Accum("PPO Gradient Time", timer.Elapsed());
 
 				meanValLoss += valueLoss.cpu().detach().item<float>();
