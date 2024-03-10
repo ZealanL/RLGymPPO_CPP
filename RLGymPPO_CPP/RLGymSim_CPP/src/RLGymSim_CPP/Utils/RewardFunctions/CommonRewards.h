@@ -6,7 +6,7 @@ namespace RLGSC {
 	class EventReward : public RewardFunction {
 	public:
 		struct ValSet {
-			constexpr static int VAL_AMOUNT = 8;
+			constexpr static int VAL_AMOUNT = 9;
 			float vals[VAL_AMOUNT] = {};
 
 			float& operator[](int index) { return vals[index]; }
@@ -25,6 +25,7 @@ namespace RLGSC {
 				shot = 0,
 				save = 0,
 				demo = 0,
+				demoed = 0,
 				boostPickup = 0;
 
 			float& operator[](size_t index) { 

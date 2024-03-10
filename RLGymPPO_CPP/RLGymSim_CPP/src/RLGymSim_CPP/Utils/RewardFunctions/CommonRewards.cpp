@@ -16,7 +16,7 @@ RLGSC::EventReward::ValSet RLGSC::EventReward::ExtractValues(const PlayerData& p
 		opponentGoals = state.scoreLine[1 - (int)player.teamNum];
 
 	float newVals[ValSet::VAL_AMOUNT] = {
-		player.matchGoals, teamGoals, opponentGoals, player.ballTouched, player.matchShots, player.matchSaves, player.matchDemos, player.boostFraction
+		player.matchGoals, teamGoals, opponentGoals, player.ballTouched, player.matchShots, player.matchSaves, player.matchDemos, player.carState.isDemoed, player.boostFraction
 	};
 
 	memcpy(result.vals, newVals, sizeof(newVals));
