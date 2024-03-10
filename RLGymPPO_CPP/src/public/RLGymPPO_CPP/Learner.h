@@ -37,6 +37,8 @@ namespace RLGPC {
 		void Learn();
 		void AddNewExperience(class GameTrajectory& gameTraj);
 
+		void UpdateLearningRates(float policyLR, float criticLR);
+
 		std::vector<Report> GetAllGameMetrics();
 
 		void Save();

@@ -1,4 +1,5 @@
 #include "Learner.h"
+#include "Learner.h"
 
 #include <RLGymPPO_CPP/PPO/PPOLearner.h>
 #include <RLGymPPO_CPP/PPO/ExperienceBuffer.h>
@@ -493,6 +494,10 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 	expBuffer->SubmitExperience(
 		expTensors
 	);
+}
+
+void RLGPC::Learner::UpdateLearningRates(float policyLR, float criticLR) {
+	ppo->UpdateLearningRates(policyLR, criticLR);
 }
 
 std::vector<RLGPC::Report> RLGPC::Learner::GetAllGameMetrics() {
