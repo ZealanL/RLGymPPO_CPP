@@ -9,7 +9,11 @@
 
 #define RG_NOGRAD torch::NoGradGuard _noGradGuard
 
-#define RG_AUTOCAST_ON() at::autocast::set_enabled(true)
+#define RG_AUTOCAST_ON() { \
+at::autocast::set_enabled(true); \
+at::autocast::set_autocast_gpu_dtype(torch::kBFloat16); \
+at::autocast::set_autocast_cpu_dtype(torch::kFloat); \
+}
 
 #define RG_AUTOCAST_OFF() { \
 at::autocast::clear_cache(); \

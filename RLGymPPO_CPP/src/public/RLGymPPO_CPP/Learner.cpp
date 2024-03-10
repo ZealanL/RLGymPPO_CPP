@@ -357,11 +357,11 @@ void RLGPC::Learner::Learn() {
 			if (blockAgentInferDuringLearn)
 				agentMgr->disableCollection = true;
 
-			//try {
+			try {
 				ppo->Learn(expBuffer, report);
-			//} catch (std::exception& e) {
-			//	RG_ERR_CLOSE("Exception during PPOLearner::Learn(): " << e.what());
-			//}
+			} catch (std::exception& e) {
+				RG_ERR_CLOSE("Exception during PPOLearner::Learn(): " << e.what());
+			}
 
 			if (blockAgentInferDuringLearn)
 				agentMgr->disableCollection = false;

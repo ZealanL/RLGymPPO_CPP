@@ -8,6 +8,7 @@
 
 #include <torch/optim/adam.h>
 #include <torch/nn/modules/loss.h>
+#include "../Util/gradscaler.hpp"
 
 namespace RLGPC {
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/ppo/ppo_learner.py

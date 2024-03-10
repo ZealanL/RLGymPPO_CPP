@@ -40,8 +40,11 @@ void _RunFunc(ThreadAgent* ta) {
 	// Will stores our current observations for all our games
 	torch::Tensor curObsTensor = MakeGamesOBSTensor(games);
 
+#if 0 // TODO: Potential cause of learning errors
 	bool halfPrec = mgr->policyHalf != NULL;
-
+#else
+	constexpr bool halfPrec = false;
+#endif
 	while (ta->shouldRun) {
 
 		if (render)

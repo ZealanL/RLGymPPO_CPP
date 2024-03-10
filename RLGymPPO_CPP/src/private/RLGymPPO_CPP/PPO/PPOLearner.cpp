@@ -54,11 +54,11 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 }
 
 void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
-#if 1 // TODO: Doesn't work
-	constexpr bool halfPrec = false;
-#else
-	bool halfPrec = config.halfPrecModels;
+#ifdef RG_GRAD_SCALER
+	amp::GradScaler gradScaler = amp::GradScaler();
 #endif
+
+	bool autocast = config.autocastLearn;
 
 	int
 		numIterations = 0,
@@ -105,36 +105,21 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				auto acts = batchActs.slice(0, start, stop).to(device, true);
 				auto obs = batchObs.slice(0, start, stop).to(device, true);
 
-				torch::Tensor obsHalf;
-				if (halfPrec)
-					obsHalf = obs.to(RG_HALFPERC_TYPE);
-
 				auto advantages = batchAdvantages.slice(0, start, stop).to(device, true);
 				auto oldProbs = batchOldProbs.slice(0, start, stop).to(device, true);
 				auto targetValues = batchTargetValues.slice(0, start, stop).to(device, true);
 
 				timer.Reset();
-				torch::Tensor vals;
-				if (halfPrec) {
-					vals = valueNetHalf->Forward(obsHalf);
-					vals = vals.to(ScalarType::Float, false);
-				} else {
-					vals = valueNet->Forward(obs);
-				}
+				if (autocast) RG_AUTOCAST_ON();
+				auto vals = valueNet->Forward(obs);
 				report.Accum("PPO Value Estimate Time", timer.Elapsed());
 
 				timer.Reset();
 				// Get policy log probs & entropy
-				torch::Tensor logProbs, entropy;
-				if (halfPrec) {
-					DiscretePolicy::BackpropResult bpResult = policyHalf->GetBackpropData(obsHalf, acts.to(RG_HALFPERC_TYPE));
-					logProbs = bpResult.actionLogProbs.to(ScalarType::Float);
-					entropy = bpResult.entropy.to(ScalarType::Float);
-				} else {
-					DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts);
-					logProbs = bpResult.actionLogProbs;
-					entropy = bpResult.entropy;
-				}
+				DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts);
+	
+				auto logProbs = bpResult.actionLogProbs;
+				auto entropy = bpResult.entropy;
 
 				logProbs = logProbs.view_as(oldProbs);
 				report.Accum("PPO Backprop Data Time", timer.Elapsed());
@@ -152,6 +137,8 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				).mean();
 				auto valueLoss = valueLossFn(vals, targetValues);
 				auto ppoLoss = (policyLoss - entropy * config.entCoef) * batchSizeRatio;
+
+				if (autocast) RG_AUTOCAST_OFF();
 
 				// Compute KL divergence & clip fraction using SB3 method for reporting
 				float kl;
@@ -172,8 +159,13 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				//	From my testing, they are around 61% of learn time
 				//	Results will probably vary heavily depending on model size and GPU strength
 				RG_LOG("PPOLoss type size: " << ppoLoss.detach().cpu().dtype().itemsize());
-				TorchFuncs::ScaleGrad(ppoLoss, device).backward();
-				TorchFuncs::ScaleGrad(valueLoss, device).backward();
+#ifdef RG_GRAD_SCALER
+				gradScaler.scale(ppoLoss).backward();
+				gradScaler.scale(valueLoss).backward();
+#else
+				ppoLoss.backward();
+				valueLoss.backward();
+#endif
 				report.Accum("PPO Gradient Time", timer.Elapsed());
 
 				meanValLoss += valueLoss.cpu().detach().item<float>();
@@ -185,14 +177,22 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			nn::utils::clip_grad_norm_(valueNet->parameters(), 0.5f);
 			nn::utils::clip_grad_norm_(policy->parameters(), 0.5f);
 
+#ifdef RG_GRAD_SCALER
+			gradScaler.step(*policyOptimizer);
+			gradScaler.step(*valueOptimizer);
+#else
 			policyOptimizer->step();
 			valueOptimizer->step();
+#endif
 
-			if (halfPrec) {
+			if (policyHalf)
 				_CopyModelParamsHalf(policy, policyHalf);
+			if (valueNetHalf)
 				_CopyModelParamsHalf(valueNet, valueNetHalf);
-			}
-
+			
+#ifdef RG_GRAD_SCALER
+			gradScaler.update();
+#endif
 			numIterations += 1;
 		}
 	}
@@ -309,9 +309,11 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 	TorchLoadSaveSeq(learner->policy->seq, folderPath / FILE_NAMES[0], learner->device, load);
 	TorchLoadSaveSeq(learner->valueNet->seq, folderPath / FILE_NAMES[1], learner->device, load);
 
-	if (load && learner->config.halfPrecModels) {
-		_CopyModelParamsHalf(learner->policy, learner->policyHalf);
-		_CopyModelParamsHalf(learner->valueNet, learner->valueNetHalf);
+	if (load) {
+		if (learner->policyHalf)
+			_CopyModelParamsHalf(learner->policy, learner->policyHalf);
+		if (learner->valueNetHalf)
+			_CopyModelParamsHalf(learner->valueNet, learner->valueNetHalf);
 	}
 
 	// Load or save optimizers

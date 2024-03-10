@@ -14,8 +14,11 @@ namespace RLGPC {
 		float clipRange = 0.2f;
 		int miniBatchSize = 0; // Set to 0 to just use batchSize
 
-		// Enable half-precision versions of the models where beneficial
-		// Highy recommended, speeds up PPO learn by ~90% on larger models
-		bool halfPrecModels = true; 
+		// Experimental, improves PPO learn speed
+		// If this causes your learning to collapse, please let me know
+		bool autocastLearn = true;
+
+		// Very experimental, uses half-precision versions of models where beneficial
+		bool halfPrecModels = false;
 	};
 }
