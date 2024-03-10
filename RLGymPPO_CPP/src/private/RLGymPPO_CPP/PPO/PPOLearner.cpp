@@ -158,7 +158,6 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				// NOTE: These gradient calls are a substantial portion of learn time
 				//	From my testing, they are around 61% of learn time
 				//	Results will probably vary heavily depending on model size and GPU strength
-				RG_LOG("PPOLoss type size: " << ppoLoss.detach().cpu().dtype().itemsize());
 #ifdef RG_GRAD_SCALER
 				gradScaler.scale(ppoLoss).backward();
 				gradScaler.scale(valueLoss).backward();
