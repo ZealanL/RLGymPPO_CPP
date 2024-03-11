@@ -3,7 +3,7 @@
 #include <pybind11/pybind11.h>
 
 namespace RLGPC {
-	struct MetricSender {
+	struct RG_IMEXPORT MetricSender {
 		std::string curRunID;
 		std::string projectName, groupName, runName;
 		pybind11::module pyMod;

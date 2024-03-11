@@ -13,7 +13,7 @@ namespace RLGPC {
 	};
 	typedef std::function<EnvCreateResult()> EnvCreateFn;
 
-	class GameInst {
+	class RG_IMEXPORT GameInst {
 	public:
 		RLGSC::Gym* gym;
 		RLGSC::Match* match;

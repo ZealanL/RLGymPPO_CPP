@@ -5,7 +5,7 @@
 #include <RLGymSim_CPP/Utils/BasicTypes/Action.h>
 
 namespace RLGPC {
-	struct RenderSender {
+	struct RG_IMEXPORT RenderSender {
 		pybind11::module pyMod;
 
 		RenderSender();
