@@ -24,7 +24,7 @@ void OnStep(GameInst* gameInst, const RLGSC::Gym::StepResult& stepResult, Report
 		gameMetrics.AccumAvg("player_speed", speed);
 
 		// Track ball touch ratio
-		gameMetrics.AccumAvg("ball_touch_ratio", player.ballTouched);
+		gameMetrics.AccumAvg("ball_touch_ratio", player.ballTouchedStep);
 
 		// Track in-air ratio
 		gameMetrics.AccumAvg("in_air_ratio", player.carState.isOnGround);

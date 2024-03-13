@@ -47,7 +47,7 @@ json PlayerToJSON(const PlayerData& player) {
 	j["boost_pickups"] = player.boostPickups;
 	j["is_demoed"] = player.carState.isDemoed;
 	j["on_ground"] = player.carState.isOnGround;
-	j["ball_touched"] = player.ballTouched;
+	j["ball_touched"] = player.ballTouchedStep;
 	j["has_flip"] = player.hasFlip;
 	j["boost_amount"] = player.boostFraction;
 

@@ -113,7 +113,7 @@ namespace RLGSC {
 		virtual float GetReward(const PlayerData& player, const GameState& state, const Action& prevAction) {
 			using namespace CommonValues;
 
-			if (player.ballTouched) {
+			if (player.ballTouchedStep) {
 				return powf((state.ball.pos.z + BALL_RADIUS) / (BALL_RADIUS * 2), aerialWeight);
 			} else {
 				return 0;

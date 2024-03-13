@@ -20,9 +20,10 @@ namespace RLGSC {
 		bool hasFlip;
 		float boostFraction; // From 0 to 1
 
-		bool ballTouched;
+		bool ballTouchedStep; // True if the player touched the ball during any of tick of the step
+		bool ballTouchedTick; // True if the player is touching the ball on the final tick of the step
 
-		void UpdateFromCar(Car* car, int tickCount);
+		void UpdateFromCar(Car* car, uint64_t tickCount, int tickSkip);
 
 		const PhysObj& GetPhys(bool inverted) const {
 			return inverted ? physInv : phys;

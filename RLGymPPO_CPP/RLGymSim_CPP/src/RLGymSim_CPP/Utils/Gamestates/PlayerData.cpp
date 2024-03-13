@@ -1,14 +1,16 @@
 #include "PlayerData.h"
 
 namespace RLGSC {
-	void PlayerData::UpdateFromCar(Car* car, int tickCount) {
+	void PlayerData::UpdateFromCar(Car* car, uint64_t tickCount, int tickSkip) {
 		carId = car->id;
 		team = car->team;
 		carState = car->GetState();
 		phys = PhysObj(carState);
 		physInv = PhysObj(phys.Invert());
 
-		ballTouched = carState.ballHitInfo.tickCountWhenHit == tickCount;
+		ballTouchedStep = carState.ballHitInfo.tickCountWhenHit >= (tickCount - tickSkip);
+		ballTouchedTick = carState.ballHitInfo.tickCountWhenHit == (tickCount - 1);
+
 		hasFlip =
 			!carState.isOnGround &&
 			!carState.hasDoubleJumped && !carState.hasFlipped
