@@ -17,7 +17,7 @@ namespace RLGSC {
 
 		virtual bool IsTerminal(const GameState& currentState) {
 			for (auto& player : currentState.players) {
-				if (player.ballTouched) {
+				if (player.ballTouchedStep) {
 					stepsSinceTouch = 0;
 					return false;
 				}

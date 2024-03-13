@@ -32,8 +32,11 @@ namespace RLGSC {
 		// NOTE: Could be null
 		Arena* lastArena = NULL;
 
+		// Last tick count when updated
+		uint64_t lastTickCount = 0;
+
 		GameState() = default;
-		GameState(Arena* arena) {
+		explicit GameState(Arena* arena) {
 			UpdateFromArena(arena);
 		}
 

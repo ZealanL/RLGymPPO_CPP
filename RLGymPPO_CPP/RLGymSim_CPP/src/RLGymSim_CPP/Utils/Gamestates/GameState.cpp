@@ -47,6 +47,7 @@ void _BuildBoostPadIndexMap(Arena* arena) {
 
 void RLGSC::GameState::UpdateFromArena(Arena* arena) {
 	lastArena = arena;
+	int tickSkip = RS_MAX(arena->tickCount - lastTickCount, 0);
 
 	ballState = arena->ball->GetState();
 	ball = PhysObj(ballState);
@@ -57,8 +58,8 @@ void RLGSC::GameState::UpdateFromArena(Arena* arena) {
 	auto carItr = arena->_cars.begin();
 	for (int i = 0; i < players.size(); i++) {
 		auto& player = players[i];
-		player.UpdateFromCar(*carItr, arena->tickCount);
-		if (player.ballTouched)
+		player.UpdateFromCar(*carItr, arena->tickCount, tickSkip);
+		if (player.ballTouchedStep)
 			lastTouchCarID = player.carId;
 
 		carItr++;
@@ -83,4 +84,6 @@ void RLGSC::GameState::UpdateFromArena(Arena* arena) {
 	// If you don't have a GoalScoreCondition then that's not my problem lmao
 	if (Math::IsBallScored(ball.pos))
 		scoreLine[(int)RS_TEAM_FROM_Y(ball.pos.y)]++;
+
+	lastTickCount = arena->tickCount;
 }
