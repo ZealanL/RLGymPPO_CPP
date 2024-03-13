@@ -37,7 +37,8 @@ RLGSC::GameState RLGSC::RandomState::ResetState(Arena* arena) {
 
 		if (randCarSpeed) {
 			// Might go outside of max vel but I do not care
-			cs.vel = Math::RandVec(Vec(-2300, -2300, -2300), Vec(2300, 2300, 2300));
+			Vec randVelDir = Math::RandVec(Vec(-1, -1, -1), Vec(1, 1, 1)).Normalized();
+			cs.vel = randVelDir * ::Math::RandFloat(0, RLConst::CAR_MAX_SPEED);
 			cs.angVel = Math::RandVec(Vec(-4, -4, -4), Vec(4, 4, 4));
 		}
 		car->SetState(cs);
