@@ -6,7 +6,7 @@ namespace RLGSC {
 	// https://github.com/AechPro/rocket-league-gym-sim/blob/main/rlgym_sim/utils/gamestates/player_data.py
 	struct PlayerData {
 		uint32_t carId;
-		Team teamNum;
+		Team team;
 
 		PhysObj phys, physInv;
 		CarState carState;

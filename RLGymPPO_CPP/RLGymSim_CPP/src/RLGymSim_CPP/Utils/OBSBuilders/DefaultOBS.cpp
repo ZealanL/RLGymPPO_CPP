@@ -20,7 +20,7 @@ void RLGSC::DefaultOBS::AddPlayerToOBS(FList& obs, const PlayerData& player, boo
 RLGSC::FList RLGSC::DefaultOBS::BuildOBS(const PlayerData& player, const GameState& state, const Action& prevAction) {
 	FList result = {};
 
-	bool inv = player.teamNum == Team::ORANGE;
+	bool inv = player.team == Team::ORANGE;
 
 	auto& ball = state.GetBallPhys(inv);
 	auto& pads = state.GetBoostPads(inv);
@@ -44,7 +44,7 @@ RLGSC::FList RLGSC::DefaultOBS::BuildOBS(const PlayerData& player, const GameSta
 			continue;
 
 		AddPlayerToOBS(
-			(otherPlayer.teamNum == player.teamNum) ? teammates : opponents,
+			(otherPlayer.team == player.team) ? teammates : opponents,
 			otherPlayer,
 			inv
 		);

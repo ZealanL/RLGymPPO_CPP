@@ -74,7 +74,7 @@ namespace RLGSC {
 		VelocityBallToGoalReward(bool ownGoal = false) : ownGoal(ownGoal) {}
 
 		virtual float GetReward(const PlayerData& player, const GameState& state, const Action& prevAction) {
-			bool targetOrangeGoal = player.teamNum == Team::BLUE;
+			bool targetOrangeGoal = player.team == Team::BLUE;
 			if (ownGoal)
 				targetOrangeGoal = !targetOrangeGoal;
 

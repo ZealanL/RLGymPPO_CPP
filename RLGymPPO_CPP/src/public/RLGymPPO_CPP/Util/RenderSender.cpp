@@ -42,7 +42,7 @@ json PlayerToJSON(const PlayerData& player) {
 	json j = {};
 
 	j["car_id"] = player.carId;
-	j["team_num"] = (int)player.teamNum;
+	j["team_num"] = (int)player.team;
 	j["phys"] = PhysToJSON(player.phys);
 	j["boost_pickups"] = player.boostPickups;
 	j["is_demoed"] = player.carState.isDemoed;

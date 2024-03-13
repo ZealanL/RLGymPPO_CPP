@@ -3,7 +3,7 @@
 namespace RLGSC {
 	void PlayerData::UpdateFromCar(Car* car, int tickCount) {
 		carId = car->id;
-		teamNum = car->team;
+		team = car->team;
 		carState = car->GetState();
 		phys = PhysObj(carState);
 		physInv = PhysObj(phys.Invert());

@@ -12,8 +12,8 @@ RLGSC::EventReward::EventReward(WeightScales weightScales) {
 RLGSC::EventReward::ValSet RLGSC::EventReward::ExtractValues(const PlayerData& player, const GameState& state) {
 	ValSet result = {};
 
-	int teamGoals = state.scoreLine[(int)player.teamNum],
-		opponentGoals = state.scoreLine[1 - (int)player.teamNum];
+	int teamGoals = state.scoreLine[(int)player.team],
+		opponentGoals = state.scoreLine[1 - (int)player.team];
 
 	float newVals[ValSet::VAL_AMOUNT] = {
 		player.matchGoals, teamGoals, opponentGoals, player.ballTouched, player.matchShots, player.matchSaves, player.matchDemos, player.carState.isDemoed, player.boostFraction
