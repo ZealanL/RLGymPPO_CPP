@@ -18,6 +18,13 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 
 	pybind11::initialize_interpreter();
 
+#ifndef NDEBUG
+	RG_LOG("===========================");
+	RG_LOG("WARNING: RLGym-PPO runs extremely slowly in debug, and there are often bizzare issues with debug-mode torch.");
+	RG_LOG("It is recommended that you compile in release mode without optimization for debugging.");
+	RG_SLEEP(1000);
+#endif
+
 	if (config.timestepsPerSave == 0)
 		config.timestepsPerSave = config.timestepsPerIteration;
 
