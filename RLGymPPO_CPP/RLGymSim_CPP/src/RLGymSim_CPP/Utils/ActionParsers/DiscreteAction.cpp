@@ -42,7 +42,7 @@ RLGSC::DiscreteAction::DiscreteAction() {
 							continue;
 
 						// Duplicate with ground
-						if (pitch == roll == jump == 0)
+						if (pitch == roll && roll == jump && jump == 0)
 							continue;
 
 						// Enable handbrake for potential wavedashes
@@ -59,5 +59,10 @@ RLGSC::DiscreteAction::DiscreteAction() {
 		}
 	}
 
-	RG_LOG("DiscreteAction(): Lookup table built, action count: " << actions.size());
+	static std::once_flag onceFlag;
+	std::call_once(onceFlag, 
+		[=] {
+			RG_LOG("DiscreteAction(): Lookup table built, action count: " << actions.size());
+		}
+	);
 }
