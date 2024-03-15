@@ -1,6 +1,7 @@
 import sys
 import os
 import struct
+import numpy as np
 from collections import OrderedDict, namedtuple
 
 import torch
@@ -76,6 +77,22 @@ def write_optimizer_state(optim, path):
 				
 	fout.write(bytes)
 	
+def get_optim_mean(optim):
+	total_mean = 0
+	for group in optim.param_groups:
+		for param in group['params']:
+			total_mean += abs(param.detach().mean().item())
+	return total_mean
+	
+def make_models_from_dicts(policy_state_dict, critic_state_dict):
+	policy_inputs, policy_outputs, policy_sizes = model_info_from_dict(policy_state_dict)
+	critic_inputs, critic_outputs, critic_sizes = model_info_from_dict(critic_state_dict)
+	
+	device = torch.device("cpu")
+	policy = DiscreteFF(policy_inputs, policy_outputs, policy_sizes, device)
+	critic = ValueEstimator(critic_inputs, critic_sizes, device)
+	return policy, critic
+	
 def main():
 
 	if len(sys.argv) != 3:
@@ -101,10 +118,7 @@ def main():
 		critic_optim_state_dict = torch.load(os.path.join(path, "PPO_VALUE_NET_OPTIMIZER.pt"))
 		
 		print("Creating models...")
-		policy_inputs, policy_outputs, policy_sizes = model_info_from_dict(policy_state_dict)
-		critic_inputs, critic_outputs, critic_sizes = model_info_from_dict(critic_state_dict)
-		policy = DiscreteFF(policy_inputs, policy_outputs, policy_sizes, device)
-		critic = ValueEstimator(critic_inputs, critic_sizes, device)
+		policy, critic = make_models_from_dicts(policy_state_dict, critic_state_dict)
 		
 		policy_optim = torch.optim.Adam(policy.parameters())
 		critic_optim = torch.optim.Adam(critic.parameters())
@@ -132,15 +146,26 @@ def main():
 		print("Loading models...")
 		policy = torch.jit.load(os.path.join(path, "PPO_POLICY.lt"))
 		critic = torch.jit.load(os.path.join(path, "PPO_CRITIC.lt"))
+		policy_inputs, policy_outputs, policy_sizes = model_info_from_dict(policy.state_dict())
+		
+		print("Creating optimizers...")
+		policy_py, critic_py = make_models_from_dicts(policy.state_dict(), critic.state_dict())
+		
+		policy_optim = torch.optim.Adam(policy_py.parameters())
+		critic_optim = torch.optim.Adam(critic_py.parameters())
+
+		print("Populating optimizers...")
+		action, log_prob = policy_py.get_action(np.zeros(policy_inputs))
+		value = critic_py.forward(np.zeros(policy_inputs))
+		log_prob.backward()
+		value.backward()
+		policy_optim.step()
+		critic_optim.step()
 		
 		print("Loading optimizers...")
-		policy_optim = torch.optim.Adam(policy.parameters())
-		critic_optim = torch.optim.Adam(critic.parameters())
-		
 		read_optimizer_state(policy_optim, os.path.join(path, "PPO_POLICY_OPTIM.rlps"))
 		read_optimizer_state(critic_optim, os.path.join(path, "PPO_CRITIC_OPTIM.rlps"))
-
-		print("Saving...")
+		print("Saving for rlgym-ppo...")
 		output_path = "python_checkpoint"
 		os.makedirs(output_path, exist_ok = True)
 		
