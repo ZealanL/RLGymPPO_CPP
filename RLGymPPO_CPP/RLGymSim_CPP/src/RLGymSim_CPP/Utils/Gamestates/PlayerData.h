@@ -11,12 +11,16 @@ namespace RLGSC {
 		PhysObj phys, physInv;
 		CarState carState;
 
+		// matchAssists: being the passer to a teammate who shot and scored
+		// matchBumps: any bump against an opponent, including demos
 		int
-			matchGoals = -1,
-			matchSaves = -1,
-			matchShots = -1,
-			matchDemos = -1,
-			boostPickups = -1;
+			matchGoals = 0,
+			matchSaves = 0,
+			matchShots = 0,
+			matchAssists = 0,
+			matchBumps = 0, 
+			matchDemos = 0,
+			boostPickups = 0;
 		bool hasFlip;
 		float boostFraction; // From 0 to 1
 

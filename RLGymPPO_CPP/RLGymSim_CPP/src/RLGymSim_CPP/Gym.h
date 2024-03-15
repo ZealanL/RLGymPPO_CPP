@@ -5,6 +5,7 @@ namespace RLGSC {
 	class Gym {
 	public:
 		Arena* arena;
+		GameEventTracker eventTracker;
 		Match* match;
 		int tickSkip;
 		GameState prevState;

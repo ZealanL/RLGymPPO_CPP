@@ -2,6 +2,7 @@
 
 #define RS_DONT_LOG // Prevent annoying log spam
 #include "../RocketSim/src/RocketSim.h"
+#include "../RocketSim/src/Sim/GameEventTracker/GameEventTracker.h"
 
 // Define our own log
 #define RG_LOG(s) { std::cout << s << std::endl; }
