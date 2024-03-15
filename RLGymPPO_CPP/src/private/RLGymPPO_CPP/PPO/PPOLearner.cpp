@@ -60,9 +60,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	
 	bool autocast = config.autocastLearn;
 
-	amp::GradScaler* gradScaler = NULL;
-	if (autocast)
-		gradScaler = new amp::GradScaler();
+	static amp::GradScaler gradScaler = amp::GradScaler();
 
 	int
 		numIterations = 0,
@@ -162,9 +160,9 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				// NOTE: These gradient calls are a substantial portion of learn time
 				//	From my testing, they are around 61% of learn time
 				//	Results will probably vary heavily depending on model size and GPU strength
-				if (gradScaler) {
-					gradScaler->scale(ppoLoss).backward();
-					gradScaler->scale(valueLoss).backward();
+				if (autocast) {
+					gradScaler.scale(ppoLoss).backward();
+					gradScaler.scale(valueLoss).backward();
 				} else {
 					ppoLoss.backward();
 					valueLoss.backward();
@@ -180,9 +178,9 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			nn::utils::clip_grad_norm_(valueNet->parameters(), 0.5f);
 			nn::utils::clip_grad_norm_(policy->parameters(), 0.5f);
 
-			if (gradScaler) {
-				gradScaler->step(*policyOptimizer);
-				gradScaler->step(*valueOptimizer);
+			if (autocast) {
+				gradScaler.step(*policyOptimizer);
+				gradScaler.step(*valueOptimizer);
 			} else {
 				policyOptimizer->step();
 				valueOptimizer->step();
@@ -193,8 +191,8 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			if (valueNetHalf)
 				_CopyModelParamsHalf(valueNet, valueNetHalf);
 			
-			if (gradScaler)
-				gradScaler->update();
+			if (autocast)
+				gradScaler.update();
 			numIterations += 1;
 		}
 	}
