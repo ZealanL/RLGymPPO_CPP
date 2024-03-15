@@ -34,8 +34,18 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("Learner::Learner():");
 	
 	if (config.renderMode && (config.numThreads > 1 || config.numGamesPerThread > 1)) {
-		RG_LOG("\tRender mode is enabed, overriding numThreads and numGamesPerThread to 1.");
+		RG_LOG("\tRender mode is enabled, overriding:");
 		config.numThreads = config.numGamesPerThread = 1;
+		RG_LOG("\t > numThreads, numGamesPerThread = 1");
+		
+		config.sendMetrics = false;
+		RG_LOG("\t > sendMetrics = false");
+
+		config.checkpointSaveFolder.clear();
+		RG_LOG("\t > checkpointSaveFolder = none");
+
+		config.timestepsPerIteration = INT_MAX;
+		RG_LOG("\t > timestepsPerIteration = inf");
 	}
 
 	if (config.saveFolderAddUnixTimestamp && !config.checkpointSaveFolder.empty())
