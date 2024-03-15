@@ -6,13 +6,13 @@ namespace RLGPC {
 	struct PPOLearnerConfig {
 		IList policyLayerSizes = { 256, 256, 256 };
 		IList criticLayerSizes = { 256, 256, 256 };
-		int batchSize = 50 * 1000;
+		int64_t batchSize = 50 * 1000;
 		int epochs = 10;
 		float policyLR = 3e-4f; // Policy learning rate
 		float criticLR = 3e-4f; // Critic learning rate
 		float entCoef = 0.005f; // Entropy coefficient
 		float clipRange = 0.2f;
-		int miniBatchSize = 0; // Set to 0 to just use batchSize
+		int64_t miniBatchSize = 0; // Set to 0 to just use batchSize
 
 		// Experimental, improves PPO learn speed
 		// If this causes your learning to collapse, please let me know

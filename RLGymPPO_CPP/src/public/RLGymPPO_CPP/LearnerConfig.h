@@ -23,8 +23,8 @@ namespace RLGPC {
 		// Set to 0 to disable
 		uint64_t timestepLimit = 0;
 
-		int expBufferSize = 100 * 1000;
-		int timestepsPerIteration = 50 * 1000;
+		int64_t expBufferSize = 100 * 1000;
+		int64_t timestepsPerIteration = 50 * 1000;
 		bool standardizeReturns = true;
 		bool standardizeOBS = false; // TODO: Implement
 		int maxReturnsPerStatsInc = 150;
@@ -48,11 +48,10 @@ namespace RLGPC {
 
 		// Save every timestep
 		// Set to zero to just use timestepsPerIteration;
-		int timestepsPerSave = 500 * 1000; 
+		int64_t timestepsPerSave = 500 * 1000;
 
 		int randomSeed = 123;
 		int checkpointsToKeep = 5; // Checkpoint storage limit before old checkpoints are deleted, set to -1 to disable
-		int shmBufferSize = 8 * 1024;
 		LearnerDeviceType deviceType = LearnerDeviceType::AUTO; // Auto will use your CUDA GPU if available
 
 		// Send metrics to the python metrics receiver
@@ -61,6 +60,5 @@ namespace RLGPC {
 		std::string metricsProjectName = "rlgymppo-cpp"; // Project name for the python metrics receiver
 		std::string metricsGroupName = "unnamed-runs"; // Group name for the python metrics receiver
 		std::string metricsRunName = "rlgymppo-cpp-run"; // Run name for the python metrics receiver
-		
 	};
 }
