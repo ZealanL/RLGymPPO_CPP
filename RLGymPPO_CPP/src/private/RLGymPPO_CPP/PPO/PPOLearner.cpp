@@ -57,11 +57,12 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 }
 
 void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
-#ifdef RG_GRAD_SCALER
-	amp::GradScaler gradScaler = amp::GradScaler();
-#endif
-
+	
 	bool autocast = config.autocastLearn;
+
+	amp::GradScaler* gradScaler = NULL;
+	if (autocast)
+		gradScaler = new amp::GradScaler();
 
 	int
 		numIterations = 0,
@@ -120,7 +121,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				timer.Reset();
 				// Get policy log probs & entropy
 				DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts);
-	
+
 				auto logProbs = bpResult.actionLogProbs;
 				auto entropy = bpResult.entropy;
 
@@ -161,13 +162,13 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				// NOTE: These gradient calls are a substantial portion of learn time
 				//	From my testing, they are around 61% of learn time
 				//	Results will probably vary heavily depending on model size and GPU strength
-#ifdef RG_GRAD_SCALER
-				gradScaler.scale(ppoLoss).backward();
-				gradScaler.scale(valueLoss).backward();
-#else
-				ppoLoss.backward();
-				valueLoss.backward();
-#endif
+				if (gradScaler) {
+					gradScaler->scale(ppoLoss).backward();
+					gradScaler->scale(valueLoss).backward();
+				} else {
+					ppoLoss.backward();
+					valueLoss.backward();
+				}
 				report.Accum("PPO Gradient Time", timer.Elapsed());
 
 				meanValLoss += valueLoss.cpu().detach().item<float>();
@@ -179,22 +180,21 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			nn::utils::clip_grad_norm_(valueNet->parameters(), 0.5f);
 			nn::utils::clip_grad_norm_(policy->parameters(), 0.5f);
 
-#ifdef RG_GRAD_SCALER
-			gradScaler.step(*policyOptimizer);
-			gradScaler.step(*valueOptimizer);
-#else
-			policyOptimizer->step();
-			valueOptimizer->step();
-#endif
+			if (gradScaler) {
+				gradScaler->step(*policyOptimizer);
+				gradScaler->step(*valueOptimizer);
+			} else {
+				policyOptimizer->step();
+				valueOptimizer->step();
+			}
 
 			if (policyHalf)
 				_CopyModelParamsHalf(policy, policyHalf);
 			if (valueNetHalf)
 				_CopyModelParamsHalf(valueNet, valueNetHalf);
 			
-#ifdef RG_GRAD_SCALER
-			gradScaler.update();
-#endif
+			if (gradScaler)
+				gradScaler->update();
 			numIterations += 1;
 		}
 	}
