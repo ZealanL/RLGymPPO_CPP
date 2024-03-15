@@ -26,7 +26,7 @@ namespace RLGSC {
 		ActionSet actions = match->ParseActions(actionsData, prevState);
 		match->prevActions = actions;
 
-		GameState state;
+		GameState state = prevState;
 
 		{ // Step arena with actions
 			auto carItr = arena->_cars.begin();
@@ -36,7 +36,7 @@ namespace RLGSC {
 			}
 
 			arena->Step(1);
-			state = GameState(arena);
+			state.UpdateFromArena(arena);
 			arena->Step(tickSkip - 1);
 			totalTicks += tickSkip;
 			totalSteps++;
