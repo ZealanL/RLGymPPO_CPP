@@ -6,7 +6,13 @@ namespace RLGPC {
 
 	struct ExperienceTensors {
 		torch::Tensor
-			states, actions, logProbs, rewards, nextStates, dones, truncated, values, advantages;
+			states, actions, logProbs, rewards, 
+
+#ifdef RG_PARANOID_MODE
+			debugCounters,
+#endif
+
+			nextStates, dones, truncated, values, advantages;
 
 		torch::Tensor* begin() { return &states; }
 		torch::Tensor* end() { return &advantages + 1; }
@@ -21,25 +27,28 @@ namespace RLGPC {
 
 		ExperienceTensors data;
 
-		int maxSize;
+		int64_t curSize = 0;
+		int64_t maxSize;
 
 		std::default_random_engine rng;
 
-		ExperienceBuffer(int maxSize, int seed, torch::Device device);
+		ExperienceBuffer(int64_t maxSize, int seed, torch::Device device);
 
 		void SubmitExperience(ExperienceTensors& data);
 
 		struct SampleSet {
 			torch::Tensor actions, logProbs, states, values, advantages;
 		};
-		SampleSet _GetSamples(const int* indices, size_t size) const;
+		SampleSet _GetSamples(const int64_t* indices, size_t size) const;
 
 		// Not const because it uses our random engine
-		std::vector<SampleSet> GetAllBatchesShuffled(int batchSize);
+		std::vector<SampleSet> GetAllBatchesShuffled(int64_t batchSize);
 
 		void Clear();
 
+		
+
 		// Combine two tensors into one, removing older data if needed to fit target size
-		static torch::Tensor _Concat(torch::Tensor t1, torch::Tensor t2, int size);
+		static torch::Tensor _Concat(torch::Tensor t1, torch::Tensor t2, int64_t size);
 	};
 }

@@ -53,6 +53,11 @@ namespace RLGPC {
 
 	void GameTrajectory::AppendSingleStep(TrajectoryTensors step) {
 
+#ifdef RG_PARANOID_MODE
+		step.debugCounters = torch::tensor(debugCounter);
+		debugCounter++;
+#endif
+
 		if (size > 0) {
 			if (size == capacity)
 				DoubleReserve();

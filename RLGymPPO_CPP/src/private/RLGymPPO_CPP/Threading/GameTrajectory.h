@@ -8,10 +8,20 @@ namespace RLGPC {
 			actions,
 			logProbs,
 			rewards,
+
+#ifdef RG_PARANOID_MODE
+			debugCounters,
+#endif
 			nextStates,
 			dones,
 			truncateds;
-		constexpr static size_t TENSOR_AMOUNT = 7; // So sad I can't use sizeof() or offsetof() here
+
+		constexpr static size_t TENSOR_AMOUNT =
+#ifdef RG_PARANOID_MODE
+			8;
+#else
+			7;
+#endif
 
 		torch::Tensor* begin() { return &states; }
 		const torch::Tensor* begin() const { return &states; }
@@ -31,6 +41,10 @@ namespace RLGPC {
 		TrajectoryTensors data;
 		size_t size = 0, capacity = 0;
 
+#ifdef RG_PARANOID_MODE
+		int64_t debugCounter = 0;
+#endif
+
 		void Append(GameTrajectory& other);
 		void MultiAppend(const std::vector<GameTrajectory>& others); // Much faster than spamming Append()
 
@@ -41,7 +55,14 @@ namespace RLGPC {
 		void AppendSingleStep(TrajectoryTensors step);
 
 		void Clear() {
+#ifdef RG_PARANOID_MODE
+			int64_t debugCounterBackup = debugCounter;
+#endif
 			*this = GameTrajectory();
+
+#ifdef RG_PARANOID_MODE
+			debugCounter = debugCounterBackup;
+#endif
 		}
 
 		// Doubles the capacity

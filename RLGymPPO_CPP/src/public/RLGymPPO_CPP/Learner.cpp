@@ -338,7 +338,12 @@ void DisplayReport(const RLGPC::Report& report) {
 }
 
 void RLGPC::Learner::Learn() {
-	RG_LOG("Learner::Learn():")
+	RG_LOG("Learner::Learn():");
+
+#ifdef RG_PARANOID_MODE
+	RG_LOG("NOTE: Paranoid mode active. Additional checks will be run that may impact performance.");
+#endif
+
 	RG_LOG("\tStarting agents...");
 	agentMgr->SetStepCallback(stepCallback);
 	agentMgr->StartAgents();
@@ -361,7 +366,11 @@ void RLGPC::Learner::Learn() {
 		totalTimesteps += timestepsCollected;
 
 		// Add it to our experience buffer, also computing GAE in the process
-		AddNewExperience(timesteps);
+		try {
+			AddNewExperience(timesteps);
+		} catch (std::exception& e) {
+			RG_ERR_CLOSE("Exception during Learner::AddNewExperience(): " << e.what());
+		}
 
 		Timer ppoLearnTimer = {};
 
@@ -502,6 +511,11 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 			trajData.actions,
 			trajData.logProbs,
 			trajData.rewards,
+
+#ifdef RG_PARANOID_MODE
+			trajData.debugCounters,
+#endif
+
 			trajData.nextStates,
 			trajData.dones,
 			trajData.truncateds,

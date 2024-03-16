@@ -131,6 +131,11 @@ void _RunFunc(ThreadAgent* ta) {
 							actionResults.action[actionsOffset + j],
 							actionResults.logProb[actionsOffset + j],
 							torch::tensor(stepResult.reward[j]),
+
+#ifdef RG_PARANOID_MODE
+							torch::Tensor(),
+#endif
+
 							nextStates[j],
 							tDone,
 							tTruncated

@@ -34,34 +34,39 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 	 
 	RG_LOG("Concatenating timesteps...");
 
-	// Combine all of their trajectories into one long trajectory
-	// We will return this giant trajectory to the learner, for both computing GAE and 
+	GameTrajectory result = {};
 	size_t totalTimesteps = 0;
-	std::vector<GameTrajectory> trajs;
-	for (auto agent : agents) {
-		agent->trajMutex.lock();
-		for (auto& trajSet : agent->trajectories) {
-			for (auto& traj : trajSet) {
-				if (traj.size > 0) {
-					// If the last timestep is not a done, mark it as truncated
-					// The GAE needs to know when the environment state stops being continuous
-					// This happens either because the environment reset (i.e. goal scored), called "done",
-					//	or the data got cut short, called "truncated"
-					traj.data.truncateds[traj.size - 1] = (traj.data.dones[traj.size - 1].item<float>() == 0);
-					trajs.push_back(traj);
-					totalTimesteps += traj.size;
-					traj.Clear();
-				} else {
-					// Kinda lame but does happen
+
+	try {
+		// Combine all of their trajectories into one long trajectory
+		// We will return this giant trajectory to the learner
+		std::vector<GameTrajectory> trajs;
+		for (auto agent : agents) {
+			agent->trajMutex.lock();
+			for (auto& trajSet : agent->trajectories) {
+				for (auto& traj : trajSet) {
+					if (traj.size > 0) {
+						// If the last timestep is not a done, mark it as truncated
+						// The GAE needs to know when the environment state stops being continuous
+						// This happens either because the environment reset (i.e. goal scored), called "done",
+						//	or the data got cut short, called "truncated"
+						traj.data.truncateds[traj.size - 1] = (traj.data.dones[traj.size - 1].item<float>() == 0);
+						trajs.push_back(traj);
+						totalTimesteps += traj.size;
+						traj.Clear();
+					} else {
+						// Kinda lame but does happen
+					}
 				}
 			}
+			agent->stepsCollected = 0;
+			agent->trajMutex.unlock();
 		}
-		agent->stepsCollected = 0;
-		agent->trajMutex.unlock();
-	}
 
-	GameTrajectory result = {};
-	result.MultiAppend(trajs);
+		result.MultiAppend(trajs);
+	} catch (std::exception& e) {
+		RG_ERR_CLOSE("Exception concatenating timesteps: " << e.what());
+	}
 
 	// Being extra paranoid in case something goes wrong
 	if (result.size != totalTimesteps)
