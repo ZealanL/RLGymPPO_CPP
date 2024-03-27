@@ -47,7 +47,7 @@ namespace RLGPC {
 		bool saveFolderAddUnixTimestamp = false; // Appends the unix time to checkpointSaveFolder
 
 		// Save every timestep
-		// Set to zero to just use timestepsPerIteration;
+		// Set to zero to just use timestepsPerIteration
 		int64_t timestepsPerSave = 500 * 1000;
 
 		int randomSeed = 123;

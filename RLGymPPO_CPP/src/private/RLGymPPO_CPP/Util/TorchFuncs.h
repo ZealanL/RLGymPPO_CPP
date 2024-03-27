@@ -14,9 +14,5 @@ namespace RLGPC {
 
 		// torch::cat({a, b}, 0) but returns b.clone() if a is undefined
 		torch::Tensor ConcatSafe(torch::Tensor a, torch::Tensor b);
-
-		constexpr uint32_t OPTIMIZER_SERIALIZE_PREFIX = 0xB73AC038;
-		void SerializeOptimizer(torch::optim::Adam* optim, DataStreamOut& out);
-		void DeserializeOptimizer(torch::optim::Adam* optim, DataStreamIn& in);
 	}
 }
