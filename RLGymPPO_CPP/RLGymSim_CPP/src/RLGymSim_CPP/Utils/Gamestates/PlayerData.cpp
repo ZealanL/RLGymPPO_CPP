@@ -15,8 +15,8 @@ namespace RLGSC {
 			ballTouchedStep = ballTouchedTick = false;
 		}
 
+		hasJump = !carState.hasJumped;
 		hasFlip =
-			!carState.isOnGround &&
 			!carState.hasDoubleJumped && !carState.hasFlipped
 			&& carState.airTimeSinceJump < RLConst::DOUBLEJUMP_MAX_DELAY;
 

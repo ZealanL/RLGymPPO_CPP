@@ -21,6 +21,8 @@ namespace RLGSC {
 			matchBumps = 0, 
 			matchDemos = 0,
 			boostPickups = 0;
+
+		bool hasJump;
 		bool hasFlip;
 		float boostFraction; // From 0 to 1
 
