@@ -4,7 +4,16 @@ namespace RLGSC {
 	void PlayerData::UpdateFromCar(Car* car, uint64_t tickCount, int tickSkip) {
 		carId = car->id;
 		team = car->team;
-		carState = car->GetState();
+		CarState newState = car->GetState();
+
+		if (newState.isDemoed && newState.pos.z == -50000) {
+			newState.pos = carState.pos;
+			newState.vel = carState.vel;
+			newState.angVel = carState.angVel;
+		}
+
+		carState = newState;
+
 		phys = PhysObj(carState);
 		physInv = PhysObj(phys.Invert());
 
