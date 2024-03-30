@@ -83,7 +83,7 @@ void RLGSC::GameState::UpdateFromArena(Arena* arena) {
 	// Update goal scoring
 	// If you don't have a GoalScoreCondition then that's not my problem lmao
 	if (Math::IsBallScored(ball.pos))
-		scoreLine[(int)RS_TEAM_FROM_Y(ball.pos.y)]++;
+		scoreLine[1 - (int)RS_TEAM_FROM_Y(ball.pos.y)]++;
 
 	lastTickCount = arena->tickCount;
 }
