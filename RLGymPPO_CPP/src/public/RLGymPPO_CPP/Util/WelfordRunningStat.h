@@ -4,18 +4,19 @@
 namespace RLGPC {
 	struct WelfordRunningStat {
 		FList ones, zeros;
-		FList runningMean, runningVariance;
+		std::vector<double> runningMean, runningVariance;
 
-		int count, shape;
+		int64_t count, shape;
 
 		WelfordRunningStat() = default;
 		WelfordRunningStat(int shape) {
 			this->ones = FList(shape);
-			std::fill(ones.begin(), ones.end(), 1);
 			this->zeros = FList(shape);
+			std::fill(ones.begin(), ones.end(), 1);
+			std::fill(zeros.begin(), zeros.end(), 1);
 
-			this->runningMean = FList(shape);
-			this->runningVariance = FList(shape);
+			this->runningMean = std::vector<double>(shape);
+			this->runningVariance = std::vector<double>(shape);
 
 			this->count = 0;
 			this->shape = shape;
@@ -26,20 +27,20 @@ namespace RLGPC {
 				Update(samples[i]);
 		}
 
-		// TODO: Inefficient construction of another FList
+		// TODO: Inefficient construction of another DList
 		void Increment(const FList& samples, int num) {
 			for (int i = 0; i < num; i++)
 				Update(FList({ samples[i] }));
 		}
 
 		void Update(const FList& sample) {
-			int currentCount = count;
+			int64_t currentCount = count;
 			count++;
 
 			// TODO: Inefficient, only need 1 loop
 
-			FList delta = FList(shape);
-			FList deltaN = FList(shape); 
+			auto delta = std::vector<double>(shape);
+			auto deltaN = std::vector<double>(shape);
 			for (int i = 0; i < shape; i++) {
 				delta[i] = sample[i] - runningMean[i];
 				deltaN[i] = delta[i] / count;
@@ -55,20 +56,24 @@ namespace RLGPC {
 			*this = WelfordRunningStat(shape);
 		}
 
-		FList Mean() {
+		FList Mean() const {
 			if (count < 2)
 				return zeros;
 
-			return runningMean;
+			FList runningMeanF = {};
+			for (double d : runningMean)
+				runningMeanF.push_back(d);
+
+			return runningMeanF;
 		}
 
-		FList GetSTD() {
+		FList GetSTD() const {
 			if (count < 2)
 				return ones;
 
 			FList var = FList(runningVariance.size());
 			for (int i = 0; i < var.size(); i++) {
-				float curVar = runningVariance[i] / (count - 1);
+				double curVar = runningVariance[i] / (count - 1);
 				if (curVar == 0)
 					curVar = 1;
 				var[i] = sqrt(curVar);
@@ -76,7 +81,5 @@ namespace RLGPC {
 
 			return var;
 		}
-
-
 	};
 }

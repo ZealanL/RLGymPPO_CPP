@@ -138,20 +138,21 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	}
 }
 
+template <typename T>
+nlohmann::json MakeJSONArray(const std::vector<T> list) {
+	auto result = nlohmann::json::array();
+
+	for (T v : list) {
+		if (isnan(v))
+			RG_LOG("MakeJSONArray(): Failed to serialize JSON with NAN value (list size: " << list.size() << ")");
+		result.push_back(v);
+	}
+
+	return result;
+}
+
 void RLGPC::Learner::SaveStats(std::filesystem::path path) {
 	using namespace nlohmann;
-
-	constexpr auto fnMakeJsonArray = [](const FList& fList) {
-		auto result = nlohmann::json::array();
-
-		for (float f : fList) {
-			if (isnan(f))
-				RG_LOG("fnMakeJsonArray(): Failed to serialize JSON with NAN value (list size: " << fList.size() << ")");
-			result.push_back(f);
-		}
-
-		return result;
-	};
 
 	constexpr const char* ERROR_PREFIX = "Learner::SaveStats(): ";
 
@@ -166,8 +167,8 @@ void RLGPC::Learner::SaveStats(std::filesystem::path path) {
 	
 	auto& rrs = j["reward_running_stats"];
 	{
-		rrs["mean"] = fnMakeJsonArray(returnStats.runningMean);
-		rrs["var"] = fnMakeJsonArray(returnStats.runningVariance);
+		rrs["mean"] = MakeJSONArray(returnStats.runningMean);
+		rrs["var"] = MakeJSONArray(returnStats.runningVariance);
 		rrs["shape"] = returnStats.shape;
 		rrs["count"] = returnStats.count;
 	}
@@ -197,8 +198,8 @@ void RLGPC::Learner::LoadStats(std::filesystem::path path) {
 	auto& rrs = j["reward_running_stats"];
 	{
 		returnStats = WelfordRunningStat(rrs["shape"]);
-		returnStats.runningMean = rrs["mean"].get<FList>();
-		returnStats.runningVariance = rrs["var"].get<FList>();
+		returnStats.runningMean = rrs["mean"].get<std::vector<double>>();
+		returnStats.runningVariance = rrs["var"].get<std::vector<double>>();
 		returnStats.count = rrs["count"];
 	}
 
