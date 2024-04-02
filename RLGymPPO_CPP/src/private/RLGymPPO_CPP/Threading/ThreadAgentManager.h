@@ -14,6 +14,7 @@ namespace RLGPC {
 		ExperienceBuffer* expBuffer;
 		std::mutex expBufferMutex = {};
 		bool standardizeOBS;
+		bool deterministic;
 		uint64_t maxCollect;
 		torch::Device device;
 
@@ -28,9 +29,9 @@ namespace RLGPC {
 
 		ThreadAgentManager(
 			DiscretePolicy* policy, DiscretePolicy* policyHalf, ExperienceBuffer* expBuffer, 
-			bool standardizeOBS, uint64_t maxCollect, torch::Device device) : 
+			bool standardizeOBS, bool deterministic, uint64_t maxCollect, torch::Device device) : 
 			policy(policy), policyHalf(policyHalf), expBuffer(expBuffer), 
-			standardizeOBS(standardizeOBS), maxCollect(maxCollect), device(device) {}
+			standardizeOBS(standardizeOBS), deterministic(deterministic), maxCollect(maxCollect), device(device) {}
 
 		RG_NO_COPY(ThreadAgentManager);
 

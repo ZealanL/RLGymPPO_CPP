@@ -28,50 +28,32 @@ RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const I
 	this->to(device, true);
 }
 
-RLGPC::DiscretePolicy::ActionResult RLGPC::DiscretePolicy::GetAction(torch::Tensor obs) {
-	// Get probability of each action
+torch::Tensor RLGPC::DiscretePolicy::GetActionProbs(torch::Tensor obs) {
 	auto probs = GetOutput(obs);
 	probs = probs.view({ -1, actionAmount });
-	probs = torch::clamp(probs, ACTION_MIN_PROB, 1); // Prevent actions from being impossible, and also log(0)
-
-	auto action = torch::multinomial(probs, 1, true);
-	auto logProb = torch::log(probs).gather(-1, action);
-	return ActionResult{ action.cpu().flatten(), logProb.cpu().flatten() };
+	probs = torch::clamp(probs, ACTION_MIN_PROB, 1);
+	return probs;
 }
 
-int RLGPC::DiscretePolicy::GetDeterministicActionIdx(torch::Tensor obs) {
-	// Get probability of each action
-	auto probs = GetOutput(obs);
-	probs = probs.view({ -1, actionAmount });
-	probs = torch::clamp(probs, ACTION_MIN_PROB, 1); // Prevent actions from being impossible, and also log(0)
+RLGPC::DiscretePolicy::ActionResult RLGPC::DiscretePolicy::GetAction(torch::Tensor obs, bool deterministic) {
+	auto probs = GetActionProbs(obs);
 
-	auto cpuProbs = probs.cpu();
-	float* probsData = probs.data_ptr<float>();
-
-	// Find the index with the greated probability
-	// Probably some stdlib stuff that could do this for me
-	int bestIdx = 0;
-	float largestVal = probsData[0];
-	for (int i = 1; i < cpuProbs.size(0); i++) {
-		float val = probsData[i];
-		if (val > largestVal) {
-			largestVal = val;
-			bestIdx = i;
-		}
+	if (deterministic) {
+		auto action = probs.argmax(1);
+		return { action.cpu().flatten(), torch::zeros(action.numel()) };
+	} else {
+		auto action = torch::multinomial(probs, 1, true);
+		auto logProb = torch::log(probs).gather(-1, action);
+		return ActionResult{ action.cpu().flatten(), logProb.cpu().flatten() };
 	}
-
-	return bestIdx;
 }
 
 RLGPC::DiscretePolicy::BackpropResult RLGPC::DiscretePolicy::GetBackpropData(torch::Tensor obs, torch::Tensor acts) {
 	// Get probability of each action
 	acts = acts.to(torch::kInt64, true);
-	auto probs = GetOutput(obs);
-	probs = probs.view({ -1, actionAmount });
-	probs = torch::clamp(probs, ACTION_MIN_PROB, 1); // Prevent actions from being impossible, and also log(0)
-	// TODO: 3x repeated code block
+	auto probs = GetActionProbs(obs);
 
-	// Man I give up on commenting this I got no clue
+	// Compute log probs and entropy
 	auto logProbs = torch::log(probs);
 	auto actionLogProbs = logProbs.gather(-1, acts);
 	auto entropy = -(logProbs * probs).sum(-1);

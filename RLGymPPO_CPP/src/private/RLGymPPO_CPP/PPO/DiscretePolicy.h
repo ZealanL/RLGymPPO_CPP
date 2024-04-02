@@ -21,13 +21,12 @@ namespace RLGPC {
 			return seq->forward(input);
 		}
 
+		torch::Tensor GetActionProbs(torch::Tensor obs);
+
 		struct ActionResult {
 			torch::Tensor action, logProb;
 		};
-		// NOTE: For deterministic, use GetDeterministicAction()
-		ActionResult GetAction(torch::Tensor obs);
-
-		int GetDeterministicActionIdx(torch::Tensor obs);
+		ActionResult GetAction(torch::Tensor obs, bool deterministic);
 		
 		struct BackpropResult {
 			torch::Tensor actionLogProbs;

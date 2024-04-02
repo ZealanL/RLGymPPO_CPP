@@ -112,7 +112,7 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("\tCreating agent manager...");
 	agentMgr = new ThreadAgentManager(
 		ppo->policy, ppo->policyHalf, expBuffer, 
-		config.standardizeOBS,  
+		config.standardizeOBS, config.deterministic,
 		(uint64_t)(config.timestepsPerIteration * 1.5f),
 		device
 	);
@@ -381,6 +381,13 @@ void RLGPC::Learner::Learn() {
 		bool blockAgentInferDuringLearn = !device.is_cpu(); 
 		{ // Run the actual PPO learning on the experience we have collected
 			
+			if (config.deterministic) {
+				RG_ERR_CLOSE(
+					"Learner::Learn(): Cannot run PPO learn iteration when on deterministic mode!"
+					"\nDeterministic mode is meant for performing, not training. Only collection should occur."
+				);
+			}
+
 			RG_LOG("Learning...");
 			if (blockAgentInferDuringLearn)
 				agentMgr->disableCollection = true;

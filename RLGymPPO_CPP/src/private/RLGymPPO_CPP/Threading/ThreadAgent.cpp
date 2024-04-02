@@ -30,6 +30,7 @@ void _RunFunc(ThreadAgent* ta) {
 	auto device = mgr->device;
 
 	bool render = mgr->renderSender;
+	bool deterministic = mgr->deterministic;
 
 	Timer stepTimer = {};
 
@@ -45,6 +46,9 @@ void _RunFunc(ThreadAgent* ta) {
 #else
 	constexpr bool halfPrec = false;
 #endif
+
+	auto policy = (halfPrec ? mgr->policyHalf : mgr->policy);
+
 	while (ta->shouldRun) {
 
 		if (render)
@@ -69,7 +73,7 @@ void _RunFunc(ThreadAgent* ta) {
 		// Infer the policy to get actions for all our agents in all our games
 		Timer policyInferTimer = {};
 		
-		auto actionResults = (halfPrec ? mgr->policyHalf : mgr->policy)->GetAction(curObsTensorDevice);
+		auto actionResults = policy->GetAction(curObsTensorDevice, deterministic);
 		if (halfPrec) {
 			actionResults.action = actionResults.action.to(torch::ScalarType::Float);
 			actionResults.logProb = actionResults.logProb.to(torch::ScalarType::Float);

@@ -30,6 +30,11 @@ namespace RLGPC {
 		int maxReturnsPerStatsInc = 150;
 		int stepsPerObsStatsInc = 5;
 
+		// Actions with the highest probability are always chosen, instead of being more likely
+		// This will make your bot play better, but is horrible for learning
+		// Trying to run a PPO learn iteration with deterministic mode will throw an exception
+		bool deterministic = false;
+
 		PPOLearnerConfig ppo = {};
 
 		float gaeLambda = 0.95f;
