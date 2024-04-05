@@ -54,6 +54,16 @@ namespace RLGSC {
 	}
 
 	GameState Match::ResetState(Arena* arena) {
-		return stateSetter->ResetState(arena);
+		GameState newState = stateSetter->ResetState(arena);
+
+		if (newState.players.size() != playerAmount) {
+			RG_ERR_CLOSE(
+				"Match::ResetState(): New state has a different amount of players, "
+				"expected " << playerAmount << " but got " << newState.players.size() << ".\n"
+				"Changing number of players at state reset is currently not supported."
+			);
+		}
+
+		return newState;
 	}
 }
