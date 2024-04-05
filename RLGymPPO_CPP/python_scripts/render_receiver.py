@@ -49,6 +49,18 @@ def pack_car(player):
 	
 	return bytes
 
+# RocketSimVis needs to know where the boost pads are
+# This is the order of boost locations from RLGym
+BOOST_LOCATIONS = ( 
+	(0, -4240, 70), (-1792, -4184, 70), (1792, -4184, 70), (-3072, -4096, 73), (3072, -4096, 73), 
+	(- 940, -3308, 70), (940, -3308, 70), (0, -2816, 70), (-3584, -2484, 70), (3584, -2484, 70), 
+	(-1788, -2300, 70), (1788, -2300, 70), (-2048, -1036, 70), (0, -1024, 70), (2048, -1036, 70), 
+	(-3584, 0, 73), (-1024, 0, 70), (1024, 0, 70), (3584, 0, 73), (-2048, 1036, 70), (0, 1024, 70), 
+	(2048, 1036, 70), (-1788, 2300, 70), (1788, 2300, 70), (-3584, 2484, 70), (3584, 2484, 70), 
+	(0, 2816, 70), (- 940, 3310, 70), (940, 3308, 70), (-3072, 4096, 73), (3072, 4096, 73), 
+	(-1792, 4184, 70), (1792, 4184, 70), (0, 4240, 70)
+)
+
 def send_data_to_rsvis(j):
 	msg = b""
 	
@@ -63,18 +75,32 @@ def send_data_to_rsvis(j):
 	players = j['players']
 	msg += struct.pack("I", len(players))
 	for player in players:
-		print("Player:", player)
 		msg += pack_car(player)
 		
+	# Send boost pads
+	pads = j['boost_pads']
+	msg += struct.pack("I", len(pads))
+	for i in range(len(pads)):
+		pos = BOOST_LOCATIONS[i]
+		is_active = pads[i]
+		cooldown = 0 # Not implemented
+		
+		msg += pack_vec(pos)
+		msg += struct.pack("B", is_active)
+		msg += struct.pack("<f", cooldown)
+	
 	# Send ball
 	msg += pack_physobj(j['ball'])
 
-	print("sending to socket")
 	sock.sendto(msg, (UDP_IP, UDP_PORT))
 
 def render_state(state_json_str):
 	j = json.loads(state_json_str)
 	try:
-		send_data_to_rsvis(j)
-	except Exception:
-		print("Exception while sending data:", traceback.format_except())
+		if 'state' in j:
+			send_data_to_rsvis(j['state'])
+		else:
+			send_data_to_rsvis(j)
+	except Exception as err:
+		print("Exception while sending data:")
+		traceback.print_exc()
