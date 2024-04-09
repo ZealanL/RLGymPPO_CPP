@@ -21,14 +21,8 @@ void RLGPC::TorchFuncs::ComputeGAE(
 	float lastReturn = 0;
 
 	for (int step = nReturns - 1; step >= 0; step--) {
-		float done, trunc;
-		if (step == nReturns - 1) {
-			done = 1 - terminal[terminal.size() - 1];
-			trunc = 1 - truncated[truncated.size() - 1];
-		} else {
-			done = 1 - terminal[step + 1];
-			trunc = 1 - truncated[step + 1];
-		}
+		float done = 1 - terminal[step];
+		float trunc = 1 - truncated[step];
 
 		float norm_rew;
 		if (returnStd != 0) {
