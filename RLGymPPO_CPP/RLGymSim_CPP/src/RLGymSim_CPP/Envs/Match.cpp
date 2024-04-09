@@ -60,9 +60,13 @@ namespace RLGSC {
 			RG_ERR_CLOSE(
 				"Match::ResetState(): New state has a different amount of players, "
 				"expected " << playerAmount << " but got " << newState.players.size() << ".\n"
-				"Changing number of players at state reset is currently not supported."
+				"Changing number of players at state reset is currently not supported.\n" <<
+				"If you want variable player amounts, set a differing player amount per env."
 			);
 		}
+
+		for (auto& pad : arena->_boostPads)
+			pad->SetState({});
 
 		return newState;
 	}
