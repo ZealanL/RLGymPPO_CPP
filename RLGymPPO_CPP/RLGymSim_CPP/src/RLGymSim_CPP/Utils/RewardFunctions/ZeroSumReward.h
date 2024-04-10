@@ -10,11 +10,12 @@ namespace RLGSC {
 		RewardFunction* childFunc;
 		bool ownsFunc;
 
-		float teamSpirit;
+		float teamSpirit, opponentScale;
 
 		// Team spirit is the fraction of reward shared between teammates
-		ZeroSumReward(RewardFunction* childFunc, float teamSpirit, bool ownsFunc = true)
-			: childFunc(childFunc), teamSpirit(teamSpirit), ownsFunc(ownsFunc) {
+		// Opponent scale is the scale of punishment for opponent rewards (normally 1, non-1 is no longer zero-sum)
+		ZeroSumReward(RewardFunction* childFunc, float teamSpirit, float opponentScale = 1, bool ownsFunc = true)
+			: childFunc(childFunc), teamSpirit(teamSpirit), opponentScale(opponentScale), ownsFunc(ownsFunc) {
 
 		}
 
