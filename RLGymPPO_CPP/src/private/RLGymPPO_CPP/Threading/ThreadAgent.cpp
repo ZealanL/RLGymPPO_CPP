@@ -6,17 +6,19 @@
 using namespace RLGPC;
 
 torch::Tensor MakeGamesOBSTensor(std::vector<GameInst*>& games) {
+	// TODO: Use of torch::concat is likely slow
+
 	assert(!games.empty());
-	torch::Tensor obsTensor = torch::unsqueeze(FLIST2_TO_TENSOR(games[0]->curObs), 0);
-	if (games.size() > 1) {
-		obsTensor = obsTensor.repeat({ (int64_t)games.size(), 1, 1 });
-		
-		for (int i = 1; i < games.size(); i++) {
-			torch::Tensor indexTensor = torch::tensor(i); // TODO: Isn't this slow and stupid
-			obsTensor.index_copy_(0, indexTensor, torch::unsqueeze(FLIST2_TO_TENSOR(games[i]->curObs), 0));
-		}
+	std::vector<torch::Tensor> obsTensors = {};
+	for (auto game : games)
+		obsTensors.push_back(FLIST2_TO_TENSOR(game->curObs));
+
+	try {
+		return torch::concat(obsTensors);
+	} catch (std::exception& e) {
+		RG_ERR_CLOSE("Failed to concat OBS tensors: " << e.what());
+		return {};
 	}
-	return obsTensor;
 }
 
 void _RunFunc(ThreadAgent* ta) {
@@ -115,7 +117,7 @@ void _RunFunc(ThreadAgent* ta) {
 			// Steps complete, add all timestep data to our trajectories, for each game
 			Timer trajAppendTimer = {};
 			ta->trajMutex.lock();
-			for (int i = 0, actionsOffset = 0; i < numGames; i++) {
+			for (int i = 0, playerOffset = 0; i < numGames; i++) {
 				int numPlayers = games[i]->match->playerAmount;
 
 				auto& stepResult = stepResults[i];
@@ -125,22 +127,20 @@ void _RunFunc(ThreadAgent* ta) {
 
 				auto tDone = torch::tensor(done);
 				auto tTruncated = torch::tensor(truncated);
-				auto states = curObsTensor[i];
-				auto nextStates = nextObsTensor[i];
 
 				for (int j = 0; j < numPlayers; j++) {
 					ta->trajectories[i][j].AppendSingleStep(
 						{
-							states[j],
-							actionResults.action[actionsOffset + j],
-							actionResults.logProb[actionsOffset + j],
+							curObsTensor[playerOffset + j],
+							actionResults.action[playerOffset + j],
+							actionResults.logProb[playerOffset + j],
 							torch::tensor(stepResult.reward[j]),
 
 #ifdef RG_PARANOID_MODE
 							torch::Tensor(),
 #endif
 
-							nextStates[j],
+							nextObsTensor[playerOffset + j],
 							tDone,
 							tTruncated
 						}
@@ -148,7 +148,7 @@ void _RunFunc(ThreadAgent* ta) {
 				}
 
 				ta->stepsCollected += numPlayers;
-				actionsOffset += numPlayers;
+				playerOffset += numPlayers;
 			}
 			ta->trajMutex.unlock();
 			ta->times.trajAppendTime += trajAppendTimer.Elapsed();
@@ -160,18 +160,21 @@ void _RunFunc(ThreadAgent* ta) {
 
 			// Delay for render
 			// TODO: Somewhat dumb system using static variables
-			static auto lastRenderTime = std::chrono::high_resolution_clock::now();
-			auto durationSince = std::chrono::high_resolution_clock::now() - lastRenderTime;
-			lastRenderTime = std::chrono::high_resolution_clock::now();
+			{
+				namespace chr = std::chrono;
+				static auto lastRenderTime = chr::high_resolution_clock::now();
+				auto durationSince = chr::high_resolution_clock::now() - lastRenderTime;
+				lastRenderTime = chr::high_resolution_clock::now();
 
-			int64_t micsSince = std::chrono::duration_cast<std::chrono::microseconds>(durationSince).count();
+				int64_t micsSince = chr::duration_cast<chr::microseconds>(durationSince).count();
 
-			double timeTaken = stepTimer.Elapsed();
-			double targetTime = (1/120.0) * renderGame->gym->tickSkip * mgr->renderTimeScale;
-			double sleepTime = RS_MAX(targetTime - timeTaken, 0);
-			int64_t sleepMics = (int64_t)(sleepTime * 1000.0 * 1000.0);
+				double timeTaken = stepTimer.Elapsed();
+				double targetTime = (1 / 120.0) * renderGame->gym->tickSkip / mgr->renderTimeScale;
+				double sleepTime = RS_MAX(targetTime - timeTaken, 0);
+				int64_t sleepMics = (int64_t)(sleepTime * 1000.0 * 1000.0);
 
-			std::this_thread::sleep_for(std::chrono::microseconds(sleepMics));
+				std::this_thread::sleep_for(chr::microseconds(sleepMics));
+			}
 		}
 
 		// Now that the step is done, our next OBS becomes our current

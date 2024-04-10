@@ -17,7 +17,8 @@ namespace RLGPC {
 
 		bool renderMode = false;
 		// If renderMode, this is the scaling of time for the game
-		// 1.0 = Simulate the game at real time
+		// 1.0 = Run the game at real time
+		// 2.0 = Run the game twice as fast as real time
 		float renderTimeScale = 1.5f; 
 
 		// Set to 0 to disable
