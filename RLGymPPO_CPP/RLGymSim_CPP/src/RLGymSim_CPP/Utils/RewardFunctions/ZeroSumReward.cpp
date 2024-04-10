@@ -23,7 +23,7 @@ std::vector<float> RLGSC::ZeroSumReward::GetAllRewards(const GameState& state, c
 		rewards[i] =
 			rewards[i] * (1 - teamSpirit)
 			+ (avgTeamRewards[teamIdx] * teamSpirit)
-			- avgTeamRewards[1 - teamIdx];
+			- (avgTeamRewards[1 - teamIdx] * opponentScale);
 	}
 
 	return rewards;

@@ -11,7 +11,7 @@ namespace RLGSC {
 		virtual void PreStep(const GameState& state) {}
 
 		virtual float GetReward(const PlayerData& player, const GameState& state, const Action& prevAction) {
-			throw new std::runtime_error("GetReward() is unimplemented");
+			throw std::runtime_error("GetReward() is unimplemented");
 			return 0;
 		}
 

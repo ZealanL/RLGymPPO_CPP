@@ -39,7 +39,7 @@ namespace RLGSC {
 			for (int i = 0; i < rewardFuncs.size(); i++) {
 				auto rewards = rewardFuncs[i]->GetAllRewards(state, prevAction, final);
 				for (int j = 0; j < rewards.size(); j++)
-					allRewards[j] += rewards[j];
+					allRewards[j] += rewards[j] * rewardWeights[i];
 			}
 
 			return allRewards;
