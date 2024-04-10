@@ -6,6 +6,7 @@ namespace RLGSC {
 	// Maximum player count can be however high you want
 	// Opponent and teammate slots are randomly shuffled to prevent slot bias
 	class DefaultOBSPadded : public DefaultOBS {
+	public:
 
 		int maxPlayers;
 
