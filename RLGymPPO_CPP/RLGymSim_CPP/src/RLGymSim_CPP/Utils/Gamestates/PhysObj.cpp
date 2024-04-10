@@ -16,7 +16,7 @@ RLGSC::PhysObj::PhysObj(const CarState& carState) {
 	_InitPhysObj(this, carState);
 }
 
-RLGSC::PhysObj RLGSC::PhysObj::Invert() {
+RLGSC::PhysObj RLGSC::PhysObj::Invert() const {
 	PhysObj result = *this;
 
 	constexpr Vec invVec = Vec(-1, -1, 1);
@@ -26,6 +26,18 @@ RLGSC::PhysObj RLGSC::PhysObj::Invert() {
 		result.rotMat[i] *= invVec;
 	result.vel *= invVec;
 	result.angVel *= invVec;
+
+	return result;
+}
+
+RLGSC::PhysObj RLGSC::PhysObj::MirrorX() const {
+	PhysObj result = *this;
+
+	result.pos.x *= -1;
+	for (int i = 0; i < 3; i++)
+		result.rotMat[i].x *= -1;
+	result.vel.x *= -1;
+	result.angVel *= Vec(1, -1, -1);
 
 	return result;
 }

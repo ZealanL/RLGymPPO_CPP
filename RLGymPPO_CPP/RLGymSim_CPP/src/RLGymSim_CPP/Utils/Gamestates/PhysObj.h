@@ -12,7 +12,10 @@ namespace RLGSC {
 		PhysObj(const BallState& ballState);
 		PhysObj(const CarState& carState);
 
-		// Rotate 180 degrees around Z axis
-		PhysObj Invert();
+		// Rotate 180 degrees around Z axis, scales everything by (-1, -1, 1)
+		PhysObj Invert() const;
+
+		// Mirror along X axis
+		PhysObj MirrorX() const;
 	};
 }
