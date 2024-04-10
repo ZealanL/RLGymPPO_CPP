@@ -22,19 +22,11 @@ namespace RLGSC {
 		return result;
 	}
 
-	std::vector<float> Match::GetRewards(const GameState& state, bool done) {
-		auto result = std::vector<float>(state.players.size());
+	FList Match::GetRewards(const GameState& state, bool done) {
+		auto result = FList(state.players.size());
 
 		rewardFn->PreStep(state);
-
-		for (int i = 0; i < state.players.size(); i++) {
-			result[i] =
-				done ? 
-				rewardFn->GetFinalReward(state.players[i], state, prevActions[i]) : 
-				rewardFn->GetReward(state.players[i], state, prevActions[i]);
-		}
-
-		return result;
+		return rewardFn->GetAllRewards(state, prevActions, done);
 	}
 
 	bool Match::IsDone(const GameState& state) {

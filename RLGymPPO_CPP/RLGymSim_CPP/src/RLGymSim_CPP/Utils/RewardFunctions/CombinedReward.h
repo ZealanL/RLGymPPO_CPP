@@ -22,6 +22,7 @@ namespace RLGSC {
 			}
 		}
 
+	protected:
 		virtual void Reset(const GameState& initialState) {
 			for (auto func : rewardFuncs)
 				func->Reset(initialState);
@@ -32,18 +33,16 @@ namespace RLGSC {
 				func->PreStep(state);
 		}
 
-		virtual float GetReward(const PlayerData& player, const GameState& state, const Action& prevAction) {
-			float totalReward = 0;
-			for (int i = 0; i < rewardFuncs.size(); i++)
-				totalReward += rewardFuncs[i]->GetReward(player, state, prevAction) * rewardWeights[i];
-			return totalReward;
-		}
+		virtual std::vector<float> GetAllRewards(const GameState& state, const ActionSet& prevAction, bool final) {
+			std::vector<float> allRewards(state.players.size());
 
-		virtual float GetFinalReward(const PlayerData& player, const GameState& state, const Action& prevAction) {
-			float totalReward = 0;
-			for (int i = 0; i < rewardFuncs.size(); i++)
-				totalReward += rewardFuncs[i]->GetFinalReward(player, state, prevAction) * rewardWeights[i];
-			return totalReward;
+			for (int i = 0; i < rewardFuncs.size(); i++) {
+				auto rewards = rewardFuncs[i]->GetAllRewards(state, prevAction, final);
+				for (int j = 0; j < rewards.size(); j++)
+					allRewards[j] += rewards[j];
+			}
+
+			return allRewards;
 		}
 
 		virtual ~CombinedReward() {
