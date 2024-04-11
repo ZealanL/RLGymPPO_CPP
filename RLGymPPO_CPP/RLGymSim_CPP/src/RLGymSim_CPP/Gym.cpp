@@ -15,6 +15,7 @@ namespace RLGSC {
 
 	void _ShotEventCallback(Arena* arena, Car* shooter, Car* passer, void* userInfo) {
 		IncPlayerCounter<&PlayerData::matchShots>(shooter, userInfo);
+		IncPlayerCounter<&PlayerData::matchShotPasses>(passer, userInfo);
 	}
 
 	void _GoalEventCallback(Arena* arena, Car* scorer, Car* passer, void* userInfo) {

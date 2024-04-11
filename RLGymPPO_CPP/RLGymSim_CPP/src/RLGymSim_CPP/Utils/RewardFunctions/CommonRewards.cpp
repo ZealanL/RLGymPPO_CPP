@@ -12,9 +12,12 @@ RLGSC::EventReward::ValSet RLGSC::EventReward::ExtractValues(const PlayerData& p
 	int teamGoals = state.scoreLine[(int)player.team],
 		opponentGoals = state.scoreLine[1 - (int)player.team];
 
-	float newVals[ValSet::VAL_AMOUNT] = {
-		player.matchGoals, teamGoals, opponentGoals, player.ballTouchedStep, player.matchShots, player.matchSaves, player.matchDemos, player.carState.isDemoed, player.boostFraction
+	float newVals[] = {
+		player.matchGoals, teamGoals, opponentGoals, player.matchAssists,
+		player.ballTouchedStep, player.matchShots, player.matchShotPasses, player.matchSaves, player.matchDemos, player.carState.isDemoed, player.boostFraction
 	};
+
+	static_assert(sizeof(newVals) / sizeof(float) == ValSet::VAL_AMOUNT);
 
 	memcpy(result.vals, newVals, sizeof(newVals));
 	return result;
