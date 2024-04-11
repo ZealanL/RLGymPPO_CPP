@@ -34,8 +34,12 @@ RLGSC::PhysObj RLGSC::PhysObj::MirrorX() const {
 	PhysObj result = *this;
 
 	result.pos.x *= -1;
-	for (int i = 0; i < 3; i++)
-		result.rotMat[i].x *= -1;
+
+	// Thanks Rolv, JPK, and Kaiyo!
+	result.rotMat.forward *= Vec(-1,  1,  1);
+	result.rotMat.right   *= Vec( 1, -1, -1);
+	result.rotMat.up      *= Vec(-1,  1,  1);
+
 	result.vel.x *= -1;
 	result.angVel *= Vec(1, -1, -1);
 
