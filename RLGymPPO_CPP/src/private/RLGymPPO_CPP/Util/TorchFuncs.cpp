@@ -36,7 +36,7 @@ void RLGPC::TorchFuncs::ComputeGAE(
 		float ret = rews[step] + lastReturn * gamma * done * trunc;
 		returns[step] = ret;
 		lastReturn = ret;
-		lastGAE_LAM = delta + gamma * lambda * done * lastGAE_LAM;
+		lastGAE_LAM = delta + gamma * lambda * done * trunc * lastGAE_LAM;
 		adv[step] = lastGAE_LAM;
 	}
 
