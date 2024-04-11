@@ -33,7 +33,7 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 
 	RG_LOG("Learner::Learner():");
 	
-	if (config.renderMode && (config.numThreads > 1 || config.numGamesPerThread > 1)) {
+	if (config.renderMode) {
 		RG_LOG("\tRender mode is enabled, overriding:");
 		config.numThreads = config.numGamesPerThread = 1;
 		RG_LOG("\t > numThreads, numGamesPerThread = 1");
