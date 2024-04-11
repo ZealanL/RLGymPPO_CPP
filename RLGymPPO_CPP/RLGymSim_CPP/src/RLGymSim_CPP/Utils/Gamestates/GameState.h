@@ -24,8 +24,8 @@ namespace RLGSC {
 		BallState ballState;
 		PhysObj ball, ballInv;
 
-		bool boostPads[CommonValues::BOOST_LOCATIONS_AMOUNT];
-		bool boostPadsInv[CommonValues::BOOST_LOCATIONS_AMOUNT];
+		std::array<bool, CommonValues::BOOST_LOCATIONS_AMOUNT> boostPads;
+		std::array<bool, CommonValues::BOOST_LOCATIONS_AMOUNT> boostPadsInv;
 
 		// Last arena we updated with
 		// Can be used to determine current arena from within reward function, for example
