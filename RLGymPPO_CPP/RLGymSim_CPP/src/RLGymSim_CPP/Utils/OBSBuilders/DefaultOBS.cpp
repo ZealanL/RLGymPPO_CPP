@@ -7,7 +7,7 @@ void RLGSC::DefaultOBS::AddPlayerToOBS(FList& obs, const PlayerData& player, boo
 	obs += phys.rotMat.forward;
 	obs += phys.rotMat.up;
 	obs += phys.vel * velCoef;
-	obs += phys.angVel * velCoef,
+	obs += phys.angVel * angVelCoef,
 		
 	obs += {
 		player.boostFraction,
