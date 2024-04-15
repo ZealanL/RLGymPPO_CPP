@@ -1,5 +1,4 @@
 #include "Learner.h"
-#include "Learner.h"
 
 #include <RLGymPPO_CPP/PPO/PPOLearner.h>
 #include <RLGymPPO_CPP/PPO/ExperienceBuffer.h>

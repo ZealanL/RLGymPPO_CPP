@@ -256,7 +256,7 @@ void TorchLoadSaveSeq(torch::nn::Sequential seq, std::filesystem::path path, c10
 			torch::load(seq, streamIn, device);
 		} catch (std::exception& e) {
 			RG_ERR_CLOSE(
-				"Failed to load model, checkpoint may be corrupt or of different model.\n" <<
+				"Failed to load model, checkpoint may be corrupt or of different model arch.\n" <<
 				"Exception: " << e.what()
 			);
 		}
