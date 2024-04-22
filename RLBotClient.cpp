@@ -75,11 +75,22 @@ GameState ToGameState(rlbot::GameTickPacket& gameTickPacket) {
 	gs.ball = ToPhysObj(gameTickPacket->ball()->physics());
 	gs.ballInv = gs.ball.Invert();
 
-	// TODO: Boost pads not yet supported
-	// Need to use field info and such
-	//auto bps = gameTickPacket->boostPadStates();
-	std::fill(gs.boostPads.begin(), gs.boostPads.end(), 1);
-	gs.boostPadsInv = gs.boostPads;
+	auto boostPadStates = gameTickPacket->boostPadStates();
+	if (boostPadStates->size() != CommonValues::BOOST_LOCATIONS_AMOUNT) {
+		if (rand() % 20 == 0) { // Don't spam-log as that will lag the bot
+			RG_LOG(
+				"RLBotClient ToGameState(): Bad boost pad amount, expected " << CommonValues::BOOST_LOCATIONS_AMOUNT << " but got " << boostPadStates->size()
+			);
+		}
+
+		// Just set all boost pads to on
+		std::fill(gs.boostPads.begin(), gs.boostPads.end(), 1);
+	} else {
+		for (int i = 0; i < CommonValues::BOOST_LOCATIONS_AMOUNT; i++) {
+			gs.boostPads[i] = boostPadStates->Get(i);
+			gs.boostPadsInv[CommonValues::BOOST_LOCATIONS_AMOUNT - i - 1] = gs.boostPads[i];
+		}
+	}
 
 	return gs;
 }
