@@ -1,6 +1,8 @@
 #include "PolicyInferUnit.h"
 
 #include <RLGymPPO_CPP/PPO/DiscretePolicy.h>
+#include <RLGymPPO_CPP/FrameworkTorch.h>
+#include <torch/csrc/api/include/torch/serialize.h>
 
 using namespace RLGSC;
 using namespace RLGPC;
@@ -18,8 +20,8 @@ RLGPC::PolicyInferUnit::PolicyInferUnit(
 	
 	RG_LOG(" > Loading policy...");
 	try {
-		auto streamIn = std::ifstream(path, std::ios::binary);
-		torch::load(seq, streamIn, device);
+		auto streamIn = std::ifstream(policyPath, std::ios::binary);
+		torch::load(policy->seq, streamIn, device);
 	} catch (std::exception& e) {
 		RG_ERR_CLOSE(
 			"Failed to load model, checkpoint may be corrupt or of different model arch.\n" <<
@@ -32,11 +34,13 @@ RLGPC::PolicyInferUnit::PolicyInferUnit(
 
 ActionSet RLGPC::PolicyInferUnit::InferPolicy(const GameState& state, const ActionSet& prevActions, bool deterministic) {
 	FList2 obsSet = {};
-	for (auto& player : state.players)
-		obsSet.push_back(obsBuilder->BuildOBS(player, state));
+	for (int i = 0; i < state.players.size(); i++)
+		obsSet.push_back(obsBuilder->BuildOBS(state.players[i], state, prevActions[i]));
 	
 	RG_NOGRAD;
 	torch::Tensor inputTen = FLIST2_TO_TENSOR(obsSet);
 	auto actionResult = policy->GetAction(inputTen, deterministic);
-	return TENSOR_TO_ILIST(actionResult.action);
+	auto actionParserInput = TENSOR_TO_ILIST(actionResult.action);
+
+	return actionParser->ParseActions(actionParserInput, state);
 }
