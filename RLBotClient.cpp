@@ -98,8 +98,7 @@ rlbot::Controller RLBotBot::GetOutput(rlbot::GameTickPacket gameTickPacket) {
 
 	if (updateAction) {
 		updateAction = false;
-		auto obs = params.obsBuilder->BuildOBS(localPlayer, gs, action);
-		
+
 		ActionSet prevActions(gs.players.size());
 		prevActions[index] = action;
 
@@ -136,6 +135,8 @@ rlbot::Controller RLBotBot::GetOutput(rlbot::GameTickPacket gameTickPacket) {
 }
 
 void RLBotClient::Run(const RLBotParams& params) {
+	g_RLBotParams = params;
+
 	rlbot::platform::SetWorkingDirectory(
 		rlbot::platform::GetExecutableDirectory()
 	);
