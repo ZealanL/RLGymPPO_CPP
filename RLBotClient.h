@@ -7,15 +7,16 @@
 #include <RLGymPPO_CPP/Util/PolicyInferUnit.h>
 
 struct RLBotParams {
+	// Set this to the same port used in rlbot/port.cfg
 	int port;
 
-	RLGSC::OBSBuilder* obsBuilder = NULL;
-	RLGSC::ActionParser* actionParser = NULL;
+	RLGSC::OBSBuilder* obsBuilder = NULL; // Use your OBS builder
+	RLGSC::ActionParser* actionParser = NULL; // Use your action parser
 
-	std::filesystem::path policyPath;
-	int obsSize;
-	std::vector<int> policyLayerSizes = {};
-	int tickSkip;
+	std::filesystem::path policyPath; // The path to your trained PPO_POLICY.lt
+	int obsSize; // You can find this from the console when running training
+	std::vector<int> policyLayerSizes = {}; // Your layer sizes
+	int tickSkip; // Your tick skip
 };
 
 class RLBotBot : public rlbot::Bot {
