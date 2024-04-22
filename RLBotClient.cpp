@@ -131,7 +131,7 @@ rlbot::Controller RLBotBot::GetOutput(rlbot::GameTickPacket gameTickPacket) {
 		rc.handbrake = controls.handbrake;
 	}
 
-	return rlbot::Controller();
+	return rc;
 }
 
 void RLBotClient::Run(const RLBotParams& params) {
