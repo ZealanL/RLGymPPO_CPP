@@ -1,3 +1,6 @@
 [submodule "pybind11"]
 	path = RLGymPPO_CPP/pybind11
 	url = https://github.com/pybind/pybind11
+[submodule "RLBotCPP"]
+	path = RLBotCPP
+	url = https://github.com/kipje13/RLBotCPP

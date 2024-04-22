@@ -8,6 +8,8 @@
 #include <RLGymSim_CPP/Utils/StateSetters/RandomState.h>
 #include <RLGymSim_CPP/Utils/ActionParsers/DiscreteAction.h>
 
+#include "RLBotClient.h"
+
 using namespace RLGPC; // RLGymPPO
 using namespace RLGSC; // RLGymSim
 
