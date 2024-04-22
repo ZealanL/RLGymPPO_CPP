@@ -22,14 +22,18 @@ struct RLBotParams {
 class RLBotBot : public rlbot::Bot {
 public:
 
+	// Parameters to define the bot
 	RLBotParams params;
 
+	// Inference unit to infer the policy with, also uses our obs and action parser
 	RLGPC::PolicyInferUnit* policyInferUnit;
 
+	// Queued action and current action
 	RLGSC::Action 
 		action = {}, 
 		controls = {};
 
+	// Persistent info
 	bool updateAction = true;
 	float prevTime = 0;
 	int ticks = -1;
