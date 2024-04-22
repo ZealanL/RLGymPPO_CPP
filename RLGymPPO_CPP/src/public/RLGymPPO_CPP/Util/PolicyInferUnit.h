@@ -4,7 +4,7 @@
 #include "../LearnerConfig.h"
 
 namespace RLGPC {
-	class PolicyInferUnit {
+	class RG_IMEXPORT PolicyInferUnit {
 	public:
 
 		RLGSC::OBSBuilder* obsBuilder;
