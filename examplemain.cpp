@@ -109,24 +109,24 @@ int main() {
 	cfg.numGamesPerThread = 24;
 
 	// We want a large itr/batch size
-	// Increase this up to ~700k, stop if you start losing steps/second
+	// You'll want to increase this as your bot improves, up to an extent
 	int tsPerItr = 100 * 1000;
 	cfg.timestepsPerIteration = tsPerItr;
 	cfg.ppo.batchSize = tsPerItr;
-	cfg.ppo.miniBatchSize = 50 * 1000; // Lower this if too much VRAM is being allocated
+	cfg.ppo.miniBatchSize = 25 * 1000; // Lower this if too much VRAM is being allocated
 	cfg.expBufferSize = tsPerItr * 3;
 	
 	// This is just set to 1 to match rlgym-ppo example
-	// If you want to train more efficiently, you should probably increase this to 10 or something
-	// It will lower the sps though
+	// I've found the best value is somewhere between 2 and 4
+	// Increasing this will lower SPS, but increase step efficiency
 	cfg.ppo.epochs = 1; 
 
 	// Reasonable starting entropy
-	cfg.ppo.entCoef = 0.005f;
+	cfg.ppo.entCoef = 0.01f;
 
-	// Decently-strong learning rate to start, may start to be too high around 50m-100m steps
-	cfg.ppo.policyLR = 2e-3;
-	cfg.ppo.criticLR = 2e-3;
+	// Decently-strong learning rate to start, may start to be too high around 100m steps
+	cfg.ppo.policyLR = 8e-4;
+	cfg.ppo.criticLR = 8e-4;
 
 	// Default model size
 	cfg.ppo.policyLayerSizes = { 256, 256, 256 };
