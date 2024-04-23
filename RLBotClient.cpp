@@ -111,7 +111,7 @@ rlbot::Controller RLBotBot::GetOutput(rlbot::GameTickPacket gameTickPacket) {
 		updateAction = false;
 
 		ActionSet prevActions(gs.players.size());
-		prevActions[index] = action;
+		prevActions[index] = controls;
 
 		auto actions = policyInferUnit->InferPolicy(gs, prevActions, true);
 		action = actions[index];
