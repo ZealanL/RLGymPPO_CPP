@@ -36,6 +36,10 @@ namespace RLGPC {
 		// Trying to run a PPO learn iteration with deterministic mode will throw an exception
 		bool deterministic = false;
 
+		// Collect additional steps during the learning phase
+		// Note that, once the learning phase completes and the policy is updated, these additional steps are from the old policy
+		bool collectionDuringLearn = false;
+
 		PPOLearnerConfig ppo = {};
 
 		float gaeLambda = 0.95f;

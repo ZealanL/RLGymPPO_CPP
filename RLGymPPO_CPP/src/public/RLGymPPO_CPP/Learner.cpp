@@ -365,6 +365,9 @@ void RLGPC::Learner::Learn() {
 
 		totalTimesteps += timestepsCollected;
 
+		if (!config.collectionDuringLearn)
+			agentMgr->disableCollection = true;
+
 		// Add it to our experience buffer, also computing GAE in the process
 		try {
 			AddNewExperience(timesteps);
@@ -377,7 +380,8 @@ void RLGPC::Learner::Learn() {
 		// Stop agents from inferencing during learn if we are not on CPU
 		// This is because learning is very GPU intensive, and letting iterations collect during that time slows it down
 		// On CPU, learning is its own thread, it's better to keep collecting
-		bool blockAgentInferDuringLearn = !device.is_cpu(); 
+		// Also, if config.collectionDuringLearn is false, we ignore this
+		bool blockAgentInferDuringLearn = config.collectionDuringLearn && !device.is_cpu();
 		{ // Run the actual PPO learning on the experience we have collected
 			
 			if (config.deterministic) {
@@ -412,9 +416,13 @@ void RLGPC::Learner::Learn() {
 		// Get all metrics from agent manager
 		agentMgr->GetMetrics(report);
 
-		// Don't just measure the time we waited for to collect for steps
+		if (!config.collectionDuringLearn) {
+			agentMgr->disableCollection = false;
+		}
+
+		// If we collect during consuption, don't just measure the time we waited for to collect for steps
 		// Because of collection during learn, this time could be near-zero, resulting in SPS showing some crazy number
-		double trueCollectionTime = agentMgr->lastIterationTime;
+		double trueCollectionTime = config.collectionDuringLearn ? agentMgr->lastIterationTime : relCollectionTime;
 		if (blockAgentInferDuringLearn)
 			trueCollectionTime -= ppoLearnTime; // We couldn't have been collecting during this time
 		trueCollectionTime = RS_MAX(trueCollectionTime, relCollectionTime);
