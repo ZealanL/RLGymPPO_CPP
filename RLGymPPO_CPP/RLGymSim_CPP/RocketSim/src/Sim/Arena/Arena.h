@@ -18,11 +18,13 @@
 #include "../../../libsrc/bullet3-3.24/BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h"
 #include "../../../libsrc/bullet3-3.24/BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h"
 
+RS_NS_START
+
 // Mode of speed/memory optimization for the arena
 // Will affect whether high memory consumption is used to slightly increase speed or not
 enum class ArenaMemWeightMode : byte {
-	HEAVY, // ~11MB per arena
-	LIGHT // ~0.8MB per arena
+	HEAVY, // ~611KB per arena with 4 cars
+	LIGHT  // ~397KB per arena with 4 cars
 };
 
 typedef std::function<void(class Arena* arena, Team scoringTeam, void* userInfo)> GoalScoreEventFn;
@@ -152,7 +154,7 @@ public:
 
 	// NOTE: Passed shape pointer will be freed when arena is deconstructed
 	template <class T>
-	void _AddStaticCollisionShape(
+	btRigidBody* _AddStaticCollisionShape(
 		size_t rbIndex, size_t meshListIndex, T* shape, T* meshList, btVector3 posBT = btVector3(0, 0, 0), 
 		bool isHoopsNet = false) {
 
@@ -169,6 +171,7 @@ public:
 		} else {
 			_bulletWorld.addRigidBody(&shapeRB);
 		}
+		return &shapeRB;
 	}
 
 	void _SetupArenaCollisionShapes();
@@ -196,3 +199,5 @@ private:
 	// Making this private because horrible memory overflows would happen if you changed it
 	ArenaMemWeightMode _memWeightMode;
 };
+
+RS_NS_END

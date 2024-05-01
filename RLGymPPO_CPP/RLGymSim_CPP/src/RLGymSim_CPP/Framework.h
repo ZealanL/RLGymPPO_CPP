@@ -4,6 +4,9 @@
 #include "../RocketSim/src/RocketSim.h"
 #include "../RocketSim/src/Sim/GameEventTracker/GameEventTracker.h"
 
+// Use RocketSim namespace
+using namespace RocketSim;
+
 // Define our own log
 #define RG_LOG(s) { std::cout << s << std::endl; }
 

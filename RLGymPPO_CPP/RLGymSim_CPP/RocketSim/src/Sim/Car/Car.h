@@ -1,4 +1,5 @@
 #pragma once
+#include "../PhysState/PhysState.h"
 #include "CarConfig/CarConfig.h"
 #include "../btVehicleRL/btVehicleRL.h"
 #include "../CarControls.h"
@@ -11,27 +12,23 @@
 #include "../../../libsrc/bullet3-3.24/BulletCollision/CollisionShapes/btCompoundShape.h"
 #include "../../../src/Sim/btVehicleRL/btVehicleRL.h"
 
-struct CarState {
+RS_NS_START
+
+struct CarState : public PhysState {
 
 	// Incremented every update, reset when SetState() is called
 	// Used for telling if a stateset occured
 	// Not serialized
 	uint64_t updateCounter = 0;
 
-	// Position in world space (UU)
-	Vec pos = { 0, 0, 17 };
-	
-	RotMat rotMat = RotMat::GetIdentity();
-
-	// Linear velocity
-	Vec vel = { 0, 0, 0 };
-
-	// Angular velocity (rad/s)
-	Vec angVel = { 0, 0, 0 };
-
 	bool isOnGround = true;
+
+	// Whether each of the 4 wheels have contact
+	// First two are front
+	bool wheelsWithContact[4] = {}; 
+
 	bool hasJumped = false, hasDoubleJumped = false, hasFlipped = false;
-	Vec lastRelDodgeTorque = { 0, 0, 0 };
+	Vec flipRelTorque = { 0, 0, 0 };
 
 	// Active during the duration of a jump or flip
 	float jumpTime = 0, flipTime = 0;
@@ -82,13 +79,20 @@ struct CarState {
 	// Controls from last tick, set to this->controls after simulation
 	CarControls lastControls = CarControls();
 
+	CarState() : PhysState() {
+		pos.z = RLConst::CAR_SPAWN_REST_Z;
+	}
+
+	// Returns true if the car is currently able to jump, double-jump, or start a flip
+	bool HasFlipOrJump() const;
+
 	void Serialize(DataStreamOut& out) const;
 	void Deserialize(DataStreamIn& in);
 };
 
 #define CARSTATE_SERIALIZATION_FIELDS \
 pos, rotMat, vel, angVel, isOnGround, hasJumped, hasDoubleJumped, hasFlipped, \
-lastRelDodgeTorque, jumpTime, isFlipping, flipTime, isJumping, airTimeSinceJump, \
+flipRelTorque, jumpTime, isFlipping, flipTime, isJumping, airTimeSinceJump, \
 boost, timeSpentBoosting, supersonicTime, handbrakeVal, isAutoFlipping, \
 autoFlipTimer, autoFlipTorqueScale, isDemoed, demoRespawnTimer, lastControls, \
 worldContact.hasContact, worldContact.contactNormal, \
@@ -178,3 +182,5 @@ private:
 
 	Car() {}
 };
+
+RS_NS_END

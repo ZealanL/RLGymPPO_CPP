@@ -7,6 +7,8 @@
 #include "../../../libsrc/bullet3-3.24/BulletCollision/CollisionShapes/btConvexHullShape.h"
 #include "../CollisionMasks.h"
 
+RS_NS_START
+
 bool BallState::Matches(const BallState& other, float marginPos, float marginVel, float marginAngVel) const {
 	return
 		pos.DistSq(other.pos) < (marginPos * marginPos) &&
@@ -129,17 +131,6 @@ void Ball::_FinishPhysicsTick(const MutatorConfig& mutatorConfig) {
 		_rigidBody.m_angularVelocity = angVel;
 	}
 
-	if (mutatorConfig.enablePhysicsRounding) {
-		_rigidBody.m_worldTransform.m_origin =
-			Math::RoundVec(_rigidBody.m_worldTransform.m_origin, 0.01 * UU_TO_BT);
-
-		_rigidBody.m_linearVelocity =
-			Math::RoundVec(_rigidBody.m_linearVelocity, 0.01 * UU_TO_BT);
-
-		_rigidBody.m_angularVelocity =
-			Math::RoundVec(_rigidBody.m_angularVelocity, 0.00001);
-	}
-
 	_internalState.updateCounter++;
 }
 
@@ -229,3 +220,5 @@ void Ball::_OnWorldCollision(GameMode gameMode, Vec normal, float tickTime) {
 		}
 	}
 }
+
+RS_NS_END

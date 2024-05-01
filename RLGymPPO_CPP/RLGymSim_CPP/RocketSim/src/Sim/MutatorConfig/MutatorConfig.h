@@ -5,6 +5,8 @@
 #include "../../DataStream/DataStreamIn.h"
 #include "../../DataStream/DataStreamOut.h"
 
+RS_NS_START
+
 enum class DemoMode : byte {
 	NORMAL,
 	ON_CONTACT,
@@ -62,8 +64,6 @@ struct MutatorConfig {
 	DemoMode demoMode = DemoMode::NORMAL;
 	bool enableTeamDemos = false;
 
-	bool enablePhysicsRounding = true;
-
 	MutatorConfig(GameMode gameMode);
 
 	RSAPI void Serialize(DataStreamOut& out) const;
@@ -76,4 +76,6 @@ ballMaxSpeed, ballDrag, ballWorldFriction, ballWorldRestitution, jumpAccel, \
 jumpImmediateForce, boostAccel, boostUsedPerSecond, respawnDelay, \
 carSpawnBoostAmount, bumpCooldownTime, boostPadCooldown_Big, boostPadCooldown_Small, \
 ballHitExtraForceScale, bumpForceScale, ballRadius, unlimitedFlips, unlimitedDoubleJumps, \
-demoMode, enableTeamDemos, enablePhysicsRounding
+demoMode, enableTeamDemos
+
+RS_NS_END

@@ -1,5 +1,7 @@
 #include "MutatorConfig.h"
 
+RS_NS_START
+
 MutatorConfig::MutatorConfig(GameMode gameMode) {
 	using namespace RLConst;
 
@@ -34,8 +36,10 @@ void MutatorConfig::Deserialize(DataStreamIn& in) {
 	uint16_t argCount = in.Read<uint16_t>();
 
 	if (argCount != RS_GET_ARGUMENT_COUNT(MUTATOR_CONFIG_SERIALIZATION_FIELDS)) {
-		RS_ERR_CLOSE(" MutatorConfig::Deserialize(): Mutator config is from a different version of RocketSim, fields don't match!");
+		RS_ERR_CLOSE(" MutatorConfig::Deserialize(): Mutator config is from a different version of RocketSim, fields don't match");
 	}
 
 	in.ReadMultiple(MUTATOR_CONFIG_SERIALIZATION_FIELDS);
 }
+
+RS_NS_END
