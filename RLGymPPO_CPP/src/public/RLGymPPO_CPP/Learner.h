@@ -35,7 +35,7 @@ namespace RLGPC {
 
 		Learner(EnvCreateFn envCreateFunc, LearnerConfig config);
 		void Learn();
-		void AddNewExperience(class GameTrajectory& gameTraj);
+		void AddNewExperience(class GameTrajectory& gameTraj, Report& report);
 
 		void UpdateLearningRates(float policyLR, float criticLR);
 

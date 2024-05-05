@@ -370,7 +370,7 @@ void RLGPC::Learner::Learn() {
 
 		// Add it to our experience buffer, also computing GAE in the process
 		try {
-			AddNewExperience(timesteps);
+			AddNewExperience(timesteps, report);
 		} catch (std::exception& e) {
 			RG_ERR_CLOSE("Exception during Learner::AddNewExperience(): " << e.what());
 		}
@@ -481,7 +481,7 @@ void RLGPC::Learner::Learn() {
 	agentMgr->StopAgents();
 }
 
-void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
+void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj, Report& report) {
 	RG_NOGRAD;
 
 	RG_LOG("Adding experience...");
@@ -517,6 +517,12 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj) {
 		config.gaeLambda,
 		retStd
 	);
+
+	float avgRet = 0;
+	for (float f : returns)
+		avgRet += abs(f);
+	avgRet /= returns.size();
+	report["Avg Return"] = avgRet / retStd;
 
 	if (config.standardizeReturns) {
 		int numToIncrement = RS_MIN(config.maxReturnsPerStatsInc, returns.size());
