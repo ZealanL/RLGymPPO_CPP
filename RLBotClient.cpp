@@ -87,7 +87,7 @@ GameState ToGameState(rlbot::GameTickPacket& gameTickPacket) {
 		std::fill(gs.boostPads.begin(), gs.boostPads.end(), 1);
 	} else {
 		for (int i = 0; i < CommonValues::BOOST_LOCATIONS_AMOUNT; i++) {
-			gs.boostPads[i] = boostPadStates->Get(i);
+			gs.boostPads[i] = boostPadStates->Get(i)->isActive();
 			gs.boostPadsInv[CommonValues::BOOST_LOCATIONS_AMOUNT - i - 1] = gs.boostPads[i];
 		}
 	}
@@ -117,12 +117,10 @@ rlbot::Controller RLBotBot::GetOutput(rlbot::GameTickPacket gameTickPacket) {
 		action = actions[index];
 	}
 
-	if (ticks >= params.tickSkip - 1 || ticks == -1) {
+	if (ticks >= params.tickSkip || ticks == -1) {
 		// Apply new action
 		controls = action;
-	}
 
-	if (ticks >= params.tickSkip || ticks == -1) {
 		// Trigger action update next tick
 		ticks = 0;
 		updateAction = true;
