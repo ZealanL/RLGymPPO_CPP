@@ -13,7 +13,7 @@ enum class DemoMode : byte {
 	DISABLED
 };
 
-struct MutatorConfig {
+RSAPI struct MutatorConfig {
 
 	Vec gravity = Vec(0, 0, RLConst::GRAVITY_Z);
 
@@ -57,7 +57,7 @@ struct MutatorConfig {
 	float
 		ballRadius;
 
-	bool 
+	bool
 		unlimitedFlips = false,
 		unlimitedDoubleJumps = false;
 
@@ -66,8 +66,8 @@ struct MutatorConfig {
 
 	MutatorConfig(GameMode gameMode);
 
-	RSAPI void Serialize(DataStreamOut& out) const;
-	RSAPI void Deserialize(DataStreamIn& in);
+	void Serialize(DataStreamOut& out) const;
+	void Deserialize(DataStreamIn& in);
 };
 
 #define MUTATOR_CONFIG_SERIALIZATION_FIELDS \

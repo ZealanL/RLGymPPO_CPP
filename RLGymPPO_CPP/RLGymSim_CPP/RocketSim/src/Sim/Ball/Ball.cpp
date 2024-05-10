@@ -79,7 +79,7 @@ btCollisionShape* MakeBallCollisionShape(GameMode gameMode, const MutatorConfig&
 	}
 }
 
-void Ball::_BulletSetup(GameMode gameMode, btDynamicsWorld* bulletWorld, const MutatorConfig& mutatorConfig) {
+void Ball::_BulletSetup(GameMode gameMode, btDynamicsWorld* bulletWorld, const MutatorConfig& mutatorConfig, bool noRot) {
 	btVector3 localIneria;
 	_collisionShape = MakeBallCollisionShape(gameMode, mutatorConfig, localIneria);
 
@@ -102,6 +102,8 @@ void Ball::_BulletSetup(GameMode gameMode, btDynamicsWorld* bulletWorld, const M
 	_rigidBody.m_collisionFlags |= btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK;
 
 	_rigidBody.m_rigidbodyFlags = 0;
+
+	_rigidBody.m_noRot = noRot && (_collisionShape->getShapeType() == SPHERE_SHAPE_PROXYTYPE);
 
 	bulletWorld->addRigidBody(&_rigidBody, btBroadphaseProxy::DefaultFilter | CollisionMasks::HOOPS_NET, btBroadphaseProxy::AllFilter);
 }

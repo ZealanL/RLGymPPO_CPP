@@ -109,12 +109,7 @@ rlbot::Controller RLBotBot::GetOutput(rlbot::GameTickPacket gameTickPacket) {
 
 	if (updateAction) {
 		updateAction = false;
-
-		ActionSet prevActions(gs.players.size());
-		prevActions[index] = controls;
-
-		auto actions = policyInferUnit->InferPolicy(gs, prevActions, true);
-		action = actions[index];
+		action = policyInferUnit->InferPolicySingle(localPlayer, gs, controls, true);
 	}
 
 	if (ticks >= params.tickSkip || ticks == -1) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#define RS_VERSION "pre-2.1.0"
+#define RS_VERSION "2.1.0"
 
 #include <stdint.h>
 #include <iostream>
@@ -106,3 +106,6 @@ constexpr uint32_t __RS_GET_VERSION_ID() {
 #define RS_VERSION_ID (__RS_GET_VERSION_ID())
 
 #define RS_IS_BIG_ENDIAN (std::endian::native == std::endian::big)
+
+// TODO: Remove more permanently
+#define RS_NO_SUSPCOLGRID

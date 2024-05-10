@@ -32,15 +32,27 @@ RLGPC::PolicyInferUnit::PolicyInferUnit(
 	RG_LOG(" > Done!");
 }
 
-ActionSet RLGPC::PolicyInferUnit::InferPolicy(const GameState& state, const ActionSet& prevActions, bool deterministic) {
+ActionSet RLGPC::PolicyInferUnit::InferPolicyAll(const GameState& state, const ActionSet& prevActions, bool deterministic) {
 	FList2 obsSet = {};
 	for (int i = 0; i < state.players.size(); i++)
 		obsSet.push_back(obsBuilder->BuildOBS(state.players[i], state, prevActions[i]));
 	
 	RG_NOGRAD;
-	torch::Tensor inputTen = FLIST2_TO_TENSOR(obsSet);
+	torch::Tensor inputTen = FLIST2_TO_TENSOR(obsSet).to(policy->device);
 	auto actionResult = policy->GetAction(inputTen, deterministic);
 	auto actionParserInput = TENSOR_TO_ILIST(actionResult.action);
 
 	return actionParser->ParseActions(actionParserInput, state);
+}
+
+Action RLGPC::PolicyInferUnit::InferPolicySingle(const PlayerData& player, const GameState& state, const Action& prevAction, bool deterministic) {
+	FList obs = obsBuilder->BuildOBS(player, state, prevAction);
+
+	RG_NOGRAD;
+	torch::Tensor inputTen = torch::tensor(obs).to(policy->device);
+	auto actionResult = policy->GetAction(inputTen, deterministic);
+	IList actionParserInput = {};
+	actionParserInput.push_back(actionResult.action.item<int>());
+
+	return actionParser->ParseActions(actionParserInput, state)[0];
 }

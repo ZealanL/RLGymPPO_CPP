@@ -14,7 +14,7 @@ namespace RLGSC {
 		int totalTicks = 0;
 		int totalSteps = 0;
 
-		Gym(Match* match, int tickSkip, CarConfig carConfig = CAR_CONFIG_OCTANE, MutatorConfig mutatorConfig = MutatorConfig(GameMode::SOCCAR));
+		Gym(Match* match, int tickSkip, CarConfig carConfig = CAR_CONFIG_OCTANE, GameMode gameMode = GameMode::SOCCAR, MutatorConfig mutatorConfig = MutatorConfig(GameMode::SOCCAR));
 
 		RG_NO_COPY(Gym);
 

@@ -37,9 +37,9 @@ namespace RLGSC {
 			IncPlayerCounter<&PlayerData::matchDemos>(bumper, userInfo);
 	}
 
-	Gym::Gym(Match* match, int tickSkip, CarConfig carConfig, MutatorConfig mutatorConfig) :
+	Gym::Gym(Match* match, int tickSkip, CarConfig carConfig, GameMode gameMode, MutatorConfig mutatorConfig) :
 		match(match), tickSkip(tickSkip) {
-		arena = Arena::Create(GameMode::SOCCAR);
+		arena = Arena::Create(gameMode);
 		arena->SetMutatorConfig(mutatorConfig);
 
 		for (int i = 0; i < match->teamSize; i++) {
@@ -79,7 +79,8 @@ namespace RLGSC {
 			}
 
 			arena->Step(1);
-			eventTracker.Update(arena);
+			if (arena->gameMode != GameMode::HEATSEEKER)
+				eventTracker.Update(arena);
 			state = prevState; // All callbacks have been hit
 			state.UpdateFromArena(arena);
 			arena->Step(tickSkip - 1);
