@@ -15,7 +15,7 @@ enum class ArenaMemWeightMode : byte {
 
 struct ArenaConfig {
 
-	ArenaMemWeightMode memWeightMode = ArenaMemWeightMode::LIGHT;
+	ArenaMemWeightMode memWeightMode = ArenaMemWeightMode::HEAVY;
 
 	// Mininimum and maximum positions all physics objects
 	Vec minPos = Vec(-4500, -6000, 0),
@@ -38,8 +38,8 @@ struct ArenaConfig {
 	// Maximum number of objects
 	int maxObjects = 512;
 
-	RSAPI void Serialize(DataStreamOut& out) const;
-	RSAPI void Deserialize(DataStreamIn& in);
+	void Serialize(DataStreamOut& out) const;
+	void Deserialize(DataStreamIn& in);
 };
 
 #define ARENA_CONFIG_SERIALIZATION_FIELDS \
