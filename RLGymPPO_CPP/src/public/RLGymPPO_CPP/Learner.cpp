@@ -8,6 +8,8 @@
 #include "../libsrc/json/nlohmann/json.hpp"
 #include <pybind11/embed.h>
 
+#include <c10/cuda/CUDACachingAllocator.h>
+
 RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	envCreateFn(envCreateFn),
 	config(_config)
@@ -407,6 +409,10 @@ void RLGPC::Learner::Learn() {
 			totalEpochs += config.ppo.epochs;
 		}
 
+		// Free CUDA cache
+		if (ppo->device.is_cuda())
+			c10::cuda::CUDACachingAllocator::emptyCache();
+
 		double ppoLearnTime = ppoLearnTimer.Elapsed();
 		double relEpochTime = epochTimer.Elapsed();
 		epochTimer.Reset(); // Reset now otherwise we can have issues with the timer and thread input-locking
@@ -498,7 +504,10 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj, Report& report) 
 
 	auto valPredsTensor = ppo->valueNet->Forward(valInput).cpu().flatten();
 	FList valPreds = TENSOR_TO_FLIST(valPredsTensor);
-	// TODO: rlgym-ppo runs torch.cuda.empty_cache() here
+
+	// Free CUDA cache
+	if (ppo->device.is_cuda())
+		c10::cuda::CUDACachingAllocator::emptyCache();
 	
 	float retStd = (config.standardizeReturns ? returnStats.GetSTD()[0] : 1);
 
