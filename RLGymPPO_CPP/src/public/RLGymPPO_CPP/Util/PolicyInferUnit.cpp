@@ -48,11 +48,19 @@ ActionSet RLGPC::PolicyInferUnit::InferPolicyAll(const GameState& state, const A
 Action RLGPC::PolicyInferUnit::InferPolicySingle(const PlayerData& player, const GameState& state, const Action& prevAction, bool deterministic) {
 	FList obs = obsBuilder->BuildOBS(player, state, prevAction);
 
+	int playerIndex = 0;
+	for (int i = 1; i < state.players.size(); i++) {
+		if (state.players[i].carId == player.carId) {
+			playerIndex = i;
+			break;
+		}
+	}
+
 	RG_NOGRAD;
 	torch::Tensor inputTen = torch::tensor(obs).to(policy->device);
 	auto actionResult = policy->GetAction(inputTen, deterministic);
-	IList actionParserInput = {};
-	actionParserInput.push_back(actionResult.action.item<int>());
+	IList actionParserInput = IList(state.players.size());
+	actionParserInput[playerIndex] = actionResult.action.item<int>();
 
-	return actionParser->ParseActions(actionParserInput, state)[0];
+	return actionParser->ParseActions(actionParserInput, state)[playerIndex];
 }
