@@ -42,7 +42,13 @@ namespace RLGSC {
 	}
 
 	ActionSet Match::ParseActions(const ActionParser::Input& actionsData, const GameState& gameState) {
-		return actionParser->ParseActions(actionsData, gameState);
+		ActionSet actions = actionParser->ParseActions(actionsData, gameState);
+
+		for (int i = 0; i < gameState.players.size(); i++)
+			if (gameState.players[i].carState.isDemoed)
+				actions[i] = {};
+
+		return actions;
 	}
 
 	GameState Match::ResetState(Arena* arena) {

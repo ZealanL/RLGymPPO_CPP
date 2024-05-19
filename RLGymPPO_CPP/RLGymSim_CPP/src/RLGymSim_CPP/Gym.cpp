@@ -92,7 +92,6 @@ namespace RLGSC {
 		bool done = match->IsDone(state);
 		FList rewards = match->GetRewards(state, done);
 		prevState = state;
-		
 
 		return StepResult {
 			obs,
