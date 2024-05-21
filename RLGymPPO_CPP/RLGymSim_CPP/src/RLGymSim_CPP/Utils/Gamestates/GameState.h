@@ -17,6 +17,8 @@ namespace RLGSC {
 
 	// https://github.com/AechPro/rocket-league-gym-sim/blob/main/rlgym_sim/utils/gamestates/game_state.py
 	struct GameState {
+		float deltaTime = 0; // Time that has passed since last update
+
 		ScoreLine scoreLine;
 		int lastTouchCarID = -1;
 		std::vector<PlayerData> players;

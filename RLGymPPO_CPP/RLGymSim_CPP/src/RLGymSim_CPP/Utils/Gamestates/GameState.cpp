@@ -49,6 +49,8 @@ void RLGSC::GameState::UpdateFromArena(Arena* arena) {
 	lastArena = arena;
 	int tickSkip = RS_MAX(arena->tickCount - lastTickCount, 0);
 
+	deltaTime = tickSkip * (1 / 120.f);
+
 	ballState = arena->ball->GetState();
 	ball = PhysObj(ballState);
 	ballInv = ball.Invert();
