@@ -7,6 +7,9 @@ Vec RandNormVec() {
 
 RLGSC::GameState RLGSC::RandomState::ResetState(Arena* arena) {
 	
+	// Reset boost pads and everything
+	arena->ResetToRandomKickoff();
+
 	constexpr float
 		X_MAX = 3500,
 		Y_MAX = 4000,
@@ -49,6 +52,9 @@ RLGSC::GameState RLGSC::RandomState::ResetState(Arena* arena) {
 		}
 
 		cs.rotMat = angle.ToRotMat();
+
+		cs.boost = ::Math::RandFloat(0, 100);
+
 		car->SetState(cs);
 	}
 
