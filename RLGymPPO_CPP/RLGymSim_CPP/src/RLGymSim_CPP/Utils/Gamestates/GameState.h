@@ -29,6 +29,9 @@ namespace RLGSC {
 		std::array<bool, CommonValues::BOOST_LOCATIONS_AMOUNT> boostPads;
 		std::array<bool, CommonValues::BOOST_LOCATIONS_AMOUNT> boostPadsInv;
 
+		std::array<float, CommonValues::BOOST_LOCATIONS_AMOUNT> boostPadTimers;
+		std::array<float, CommonValues::BOOST_LOCATIONS_AMOUNT> boostPadTimersInv;
+
 		// Last arena we updated with
 		// Can be used to determine current arena from within reward function, for example
 		// NOTE: Could be null

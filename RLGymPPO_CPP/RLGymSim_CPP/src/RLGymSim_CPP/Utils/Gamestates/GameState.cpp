@@ -78,8 +78,17 @@ void RLGSC::GameState::UpdateFromArena(Arena* arena) {
 	}
 
 	for (int i = 0; i < CommonValues::BOOST_LOCATIONS_AMOUNT; i++) {
-		boostPads[i] = arena->_boostPads[boostPadIndexMap[i]]->GetState().isActive;
-		boostPadsInv[i] = arena->_boostPads[boostPadIndexMap[CommonValues::BOOST_LOCATIONS_AMOUNT - i - 1]]->GetState().isActive;
+		int idx = boostPadIndexMap[i];
+		int invIdx = boostPadIndexMap[CommonValues::BOOST_LOCATIONS_AMOUNT - i - 1];
+
+		auto state = arena->_boostPads[idx]->GetState();
+		auto stateInv = arena->_boostPads[invIdx]->GetState();
+
+		boostPads[i] = state.isActive;
+		boostPadsInv[i] = stateInv.isActive;
+
+		boostPadTimers[i] = state.cooldown;
+		boostPadTimersInv[i] = stateInv.cooldown;
 	}
 
 	// Update goal scoring
