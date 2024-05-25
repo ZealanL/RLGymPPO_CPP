@@ -31,7 +31,14 @@ void _RunFunc(ThreadAgent* ta) {
 
 	auto device = mgr->device;
 
-	bool render = mgr->renderSender;
+	// TODO: Bad method of implementing rendering for just the first agent
+	static std::once_flag firstAgentFlag;
+	bool render = false;
+	std::call_once(
+		firstAgentFlag, [&] {
+			render = mgr->renderSender;
+		}
+	);
 	bool deterministic = mgr->deterministic;
 
 	Timer stepTimer = {};
