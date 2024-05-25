@@ -31,14 +31,11 @@ void _RunFunc(ThreadAgent* ta) {
 
 	auto device = mgr->device;
 
-	// TODO: Bad method of implementing rendering for just the first agent
-	static std::once_flag firstAgentFlag;
-	bool render = false;
-	std::call_once(
-		firstAgentFlag, [&] {
-			render = mgr->renderSender;
-		}
-	);
+	bool render = mgr->renderSender != NULL;
+	if (render && mgr->renderDuringTraining) {
+		if (ta->index != 0)
+			render = false;
+	}
 	bool deterministic = mgr->deterministic;
 
 	Timer stepTimer = {};
@@ -193,8 +190,8 @@ void _RunFunc(ThreadAgent* ta) {
 	ta->isRunning = false;
 }
 
-RLGPC::ThreadAgent::ThreadAgent(void* manager, int numGames, uint64_t maxCollect, EnvCreateFn envCreateFn)
-	: _manager(manager), numGames(numGames), maxCollect(maxCollect) {
+RLGPC::ThreadAgent::ThreadAgent(void* manager, int numGames, uint64_t maxCollect, EnvCreateFn envCreateFn, int index)
+	: _manager(manager), numGames(numGames), maxCollect(maxCollect), index(index) {
 
 	trajectories.resize(numGames);
 	for (int i = 0; i < numGames; i++) {

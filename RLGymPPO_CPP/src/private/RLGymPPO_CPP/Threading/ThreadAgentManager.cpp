@@ -3,7 +3,12 @@
 
 void RLGPC::ThreadAgentManager::CreateAgents(EnvCreateFn func, int amount, int gamesPerAgent) {
 	for (int i = 0; i < amount; i++) {
-		auto agent = new ThreadAgent(this, gamesPerAgent, maxCollect / amount, func);
+		int numGames = gamesPerAgent;
+		if (renderSender && renderDuringTraining) {
+			if (i == 0)
+				numGames = 1;
+		}
+		auto agent = new ThreadAgent(this, numGames, maxCollect / amount, func, i);
 		agents.push_back(agent);
 	}
 }

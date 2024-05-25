@@ -21,6 +21,10 @@ namespace RLGPC {
 		// 2.0 = Run the game twice as fast as real time
 		float renderTimeScale = 1.5f; 
 
+		// Enable rendering during training
+		// WARNING: This can cause tons of lag and another issues, and sometimes crashes due to python lagging out
+		bool renderDuringTraining = false;
+
 		// Set to 0 to disable
 		uint64_t timestepLimit = 0;
 

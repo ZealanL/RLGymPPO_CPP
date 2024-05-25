@@ -19,6 +19,7 @@ namespace RLGPC {
 		torch::Device device;
 
 		RenderSender* renderSender = NULL;
+		bool renderDuringTraining = false;
 		float renderTimeScale = 1.f;
 
 		bool disableCollection = false; // Prevents new steps from being started

@@ -9,6 +9,7 @@ namespace RLGPC {
 
 		void* _manager;
 		std::thread thread;
+		int index;
 
 		int numGames;
 		std::vector<GameInst*> gameInsts;
@@ -42,7 +43,7 @@ namespace RLGPC {
 		// Lock to modify trajectories
 		std::mutex trajMutex = {};
 
-		ThreadAgent(void* manager, int numGames, uint64_t maxCollect, EnvCreateFn envCreateFn);
+		ThreadAgent(void* manager, int numGames, uint64_t maxCollect, EnvCreateFn envCreateFn, int index);
 
 		RG_NO_COPY(ThreadAgent);
 
