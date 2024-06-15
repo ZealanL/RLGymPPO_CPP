@@ -6,7 +6,7 @@ namespace RLGSC {
 		float
 			throttle, steer,
 			pitch, yaw, roll,
-			boost, jump, handbrake;
+			jump, boost, handbrake;
 		constexpr static size_t ELEM_AMOUNT = 8;
 
 		Action() = default;
@@ -17,18 +17,18 @@ namespace RLGSC {
 			pitch = controls.pitch;
 			yaw = controls.yaw;
 			roll = controls.roll;
-			boost = controls.boost;
 			jump = controls.jump;
+			boost = controls.boost;
 			handbrake = controls.handbrake;
 		}
 
 		Action(
 			float throttle, float steer,
 			float pitch, float yaw, float roll,
-			float boost, float jump, float handbrake
+			float jump, float boost, float handbrake
 		) : throttle(throttle), steer(steer), 
 			pitch(pitch), yaw(yaw), roll(roll),
-			boost(boost), jump(jump), handbrake(handbrake) {
+			jump(jump), boost(boost), handbrake(handbrake) {
 		}
 
 		explicit operator CarControls() const {
