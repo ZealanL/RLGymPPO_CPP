@@ -20,5 +20,10 @@ namespace RLGPC {
 
 		// Very experimental, uses half-precision versions of models where beneficial
 		bool halfPrecModels = false;
+
+		// https://openai.com/index/how-ai-training-scales/
+		// Measures the noise of both policy and critic gradients every epoch
+		bool measureGradientNoise = false;
+		int gradientNoiseUpdateInterval = 10;
 	};
 }

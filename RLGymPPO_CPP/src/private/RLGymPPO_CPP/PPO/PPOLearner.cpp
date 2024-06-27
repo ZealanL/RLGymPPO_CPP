@@ -54,6 +54,14 @@ RLGPC::PPOLearner::PPOLearner(int obsSpaceSize, int actSpaceSize, PPOLearnerConf
 	policyOptimizer = new optim::Adam(policy->parameters(), optim::AdamOptions(config.policyLR));
 	valueOptimizer = new optim::Adam(valueNet->parameters(), optim::AdamOptions(config.criticLR));
 	valueLossFn = nn::MSELoss();
+
+	if (config.measureGradientNoise) {
+		noiseTrackerPolicy = new GradNoiseTracker(config.batchSize, config.gradientNoiseUpdateInterval);
+		noiseTrackerValueNet = new GradNoiseTracker(config.batchSize, config.gradientNoiseUpdateInterval);
+	} else {
+		noiseTrackerPolicy = NULL;
+		noiseTrackerValueNet = NULL;
+	}
 }
 
 void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
@@ -76,6 +84,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	auto criticBefore = _CopyParams(valueNet);
 
 	float batchSizeRatio = config.miniBatchSize / (float)config.batchSize;
+
 
 	Timer totalTimer = {};
 	for (int epoch = 0; epoch < config.epochs; epoch++) {
@@ -172,6 +181,11 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				numMinibatchIterations += 1;
 			}
 
+			if (config.measureGradientNoise) {
+				noiseTrackerValueNet->Update(valueNet->seq);
+				noiseTrackerPolicy->Update(policy->seq);
+			}
+
 			nn::utils::clip_grad_norm_(valueNet->parameters(), 0.5f);
 			nn::utils::clip_grad_norm_(policy->parameters(), 0.5f);
 
@@ -229,6 +243,13 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	report["Policy Update Magnitude"] = policyUpdateMagnitude;
 	report["Value Function Update Magnitude"] = criticUpdateMagnitude;
 	report["PPO Learn Time"] = totalTimer.Elapsed();
+
+	if (config.measureGradientNoise) {
+		if (noiseTrackerPolicy->lastNoiseScale != 0)
+			report["Grad Noise Policy"] = noiseTrackerPolicy->lastNoiseScale;
+		if (noiseTrackerValueNet->lastNoiseScale != 0)
+			report["Grad Noise Value Net"] = noiseTrackerValueNet->lastNoiseScale;
+	}
 
 	policyOptimizer->zero_grad();
 	valueOptimizer->zero_grad();

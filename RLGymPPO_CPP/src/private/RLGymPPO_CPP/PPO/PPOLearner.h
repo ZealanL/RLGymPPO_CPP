@@ -9,6 +9,7 @@
 #include <torch/optim/adam.h>
 #include <torch/nn/modules/loss.h>
 #include "../Util/gradscaler.hpp"
+#include "../Util/GradNoiseTracker.h"
 
 namespace RLGPC {
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/ppo/ppo_learner.py
@@ -18,6 +19,8 @@ namespace RLGPC {
 		ValueEstimator* valueNet, *valueNetHalf;
 		torch::optim::Adam *policyOptimizer, *valueOptimizer;
 		torch::nn::MSELoss valueLossFn;
+
+		GradNoiseTracker* noiseTrackerPolicy, *noiseTrackerValueNet;
 
 		PPOLearnerConfig config;
 		torch::Device device;
