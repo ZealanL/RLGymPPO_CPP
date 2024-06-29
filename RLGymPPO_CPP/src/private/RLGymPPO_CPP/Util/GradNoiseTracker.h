@@ -22,7 +22,7 @@ namespace RLGPC {
 		std::vector<torch::Tensor> batchesGrad;
 		float lastNoiseScale = 0;
 
-		GradNoiseTracker(int batchSize, int updateInterval, float averageDecay = 0.98f);
+		GradNoiseTracker(int batchSize, int updateInterval, float averageDecay = 0.99f);
 
 		void Update(torch::nn::Sequential& seq);
 	};

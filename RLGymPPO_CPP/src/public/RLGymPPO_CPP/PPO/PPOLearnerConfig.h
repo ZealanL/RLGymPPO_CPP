@@ -25,5 +25,6 @@ namespace RLGPC {
 		// Measures the noise of both policy and critic gradients every epoch
 		bool measureGradientNoise = false;
 		int gradientNoiseUpdateInterval = 10;
+		float gradientNoiseAvgDecay = 0.9925f;
 	};
 }
