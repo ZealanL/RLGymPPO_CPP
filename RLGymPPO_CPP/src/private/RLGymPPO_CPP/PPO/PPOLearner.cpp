@@ -76,7 +76,8 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	float
 		meanEntropy = 0,
 		meanDivergence = 0,
-		meanValLoss = 0;
+		meanValLoss = 0,
+		meanRatio = 0;
 	FList clipFractions = {};
 
 	// Save parameters first
@@ -84,7 +85,6 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	auto criticBefore = _CopyParams(valueNet);
 
 	float batchSizeRatio = config.miniBatchSize / (float)config.batchSize;
-
 
 	Timer totalTimer = {};
 	for (int epoch = 0; epoch < config.epochs; epoch++) {
@@ -134,6 +134,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 
 				// Compute PPO loss
 				auto ratio = exp(logProbs - oldProbs);
+				meanRatio += ratio.mean().detach().cpu().item<float>();
 				auto clipped = clamp(
 					ratio, 1 - config.clipRange, 1 + config.clipRange
 				);
@@ -215,6 +216,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	meanEntropy /= numMinibatchIterations;
 	meanDivergence /= numMinibatchIterations;
 	meanValLoss /= numMinibatchIterations;
+	meanRatio /= numMinibatchIterations;
 
 	float meanClip = 0;
 	if (!clipFractions.empty()) {
@@ -238,6 +240,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	report["Cumulative Model Updates"] = cumulativeModelUpdates;
 	report["Policy Entropy"] = meanEntropy;
 	report["Mean KL Divergence"] = meanDivergence;
+	report["Mean Ratio"] = meanRatio;
 	report["Value Function Loss"] = meanValLoss;
 	report["SB3 Clip Fraction"] = meanClip;
 	report["Policy Update Magnitude"] = policyUpdateMagnitude;

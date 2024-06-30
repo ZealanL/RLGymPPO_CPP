@@ -534,6 +534,9 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj, Report& report) 
 	avgRet /= returns.size();
 	report["Avg Return"] = avgRet / retStd;
 
+	report["Avg Advantage"] = advantages.abs().mean().item<float>();
+	report["Avg Val Target"] = valueTargets.abs().mean().item<float>();
+
 	if (config.standardizeReturns) {
 		int numToIncrement = RS_MIN(config.maxReturnsPerStatsInc, returns.size());
 		returnStats.Increment(returns, numToIncrement);
