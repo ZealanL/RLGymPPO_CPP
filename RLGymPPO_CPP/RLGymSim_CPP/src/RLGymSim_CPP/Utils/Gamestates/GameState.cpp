@@ -22,7 +22,7 @@ void _BuildBoostPadIndexMap(Arena* arena) {
 	for (int i = 0; i < CommonValues::BOOST_LOCATIONS_AMOUNT; i++) {
 		Vec targetPos = CommonValues::BOOST_LOCATIONS[i];
 		for (int j = 0; j < arena->_boostPads.size(); j++) {
-			Vec padPos = arena->_boostPads[j]->pos;
+			Vec padPos = arena->_boostPads[j]->config.pos;
 
 			if (padPos.DistSq2D(targetPos) < 10) {
 				if (!found[i]) {

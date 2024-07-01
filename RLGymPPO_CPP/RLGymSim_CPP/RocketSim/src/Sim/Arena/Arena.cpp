@@ -111,8 +111,6 @@ void Arena::SetCarBumpCallback(CarBumpEventFn callbackFunc, void* userInfo) {
 
 void Arena::ResetToRandomKickoff(int seed) {
 	using namespace RLConst;
-	bool isHoops = gameMode == GameMode::HOOPS;
-
 	// TODO: Make shuffling of kickoff setup more efficient (?)
 
 	static thread_local std::array<int, CAR_SPAWN_LOCATION_AMOUNT> KICKOFF_ORDER_TEMPLATE = { -1 };
@@ -131,10 +129,19 @@ void Arena::ResetToRandomKickoff(int seed) {
 		randEngine = new std::default_random_engine(seed);
 	}
 
-	std::shuffle(kickoffOrder.begin(), kickoffOrder.end(), *randEngine);
+	int locationAmount = (gameMode == GameMode::HEATSEEKER) ? CAR_SPAWN_LOCATION_AMOUNT_HEATSEEKER : CAR_SPAWN_LOCATION_AMOUNT;
 
-	const CarSpawnPos* CAR_SPAWN_LOCATIONS = isHoops ? CAR_SPAWN_LOCATIONS_HOOPS : CAR_SPAWN_LOCATIONS_SOCCAR;
-	const CarSpawnPos* CAR_RESPAWN_LOCATIONS = isHoops ? CAR_RESPAWN_LOCATIONS_HOOPS : CAR_RESPAWN_LOCATIONS_SOCCAR;
+	std::shuffle(kickoffOrder.begin(), kickoffOrder.begin() + locationAmount, *randEngine);
+
+	const CarSpawnPos* CAR_SPAWN_LOCATIONS = CAR_SPAWN_LOCATIONS_SOCCAR;
+	const CarSpawnPos* CAR_RESPAWN_LOCATIONS = CAR_RESPAWN_LOCATIONS_SOCCAR;
+	if (gameMode == GameMode::HOOPS) {
+		CAR_SPAWN_LOCATIONS = CAR_SPAWN_LOCATIONS_HOOPS;
+		CAR_RESPAWN_LOCATIONS = CAR_RESPAWN_LOCATIONS_HOOPS;
+	} else if (gameMode == GameMode::HEATSEEKER) {
+		CAR_SPAWN_LOCATIONS = CAR_SPAWN_LOCATIONS_HEATSEEKER;
+		CAR_RESPAWN_LOCATIONS = CAR_RESPAWN_LOCATIONS_SOCCAR;
+	}
 
 	std::vector<Car*> blueCars, orangeCars;
 	for (Car* car : _cars)
@@ -148,7 +155,7 @@ void Arena::ResetToRandomKickoff(int seed) {
 		CarSpawnPos spawnPos;
 	
 		if (i < CAR_SPAWN_LOCATION_AMOUNT) {
-			spawnPos = CAR_SPAWN_LOCATIONS[kickoffOrder[i]];
+			spawnPos = CAR_SPAWN_LOCATIONS[RS_MIN(kickoffOrder[i], locationAmount - 1)];
 		} else {
 			int respawnPosIdx = (i - (CAR_SPAWN_LOCATION_AMOUNT)) % CAR_RESPAWN_LOCATION_AMOUNT;
 			spawnPos = CAR_RESPAWN_LOCATIONS[respawnPosIdx];
@@ -194,7 +201,7 @@ void Arena::ResetToRandomKickoff(int seed) {
 	} else if (gameMode == GameMode::SNOWDAY) {
 		// Don't freeze
 		ballState.vel.z = FLT_EPSILON;
-	} else if (isHoops) {
+	} else if (gameMode == GameMode::HOOPS) {
 		ballState.vel.z = BALL_HOOPS_Z_VEL;
 	}
 	ball->SetState(ballState);
@@ -517,26 +524,38 @@ Arena::Arena(GameMode gameMode, const ArenaConfig& config, float tickRate) : _mu
 	if (loadArenaStuff) { // Initialize boost pads
 		using namespace RLConst::BoostPads;
 
-		bool isHoops = gameMode == GameMode::HOOPS;
+		if (_config.useCustomBoostPads) {
+			for (auto& padConfig : _config.customBoostPads) {
+				BoostPad* pad = BoostPad::_AllocBoostPad();
+				pad->_Setup(padConfig);
 
-		int amountSmall = isHoops ? LOCS_AMOUNT_SMALL_HOOPS : LOCS_AMOUNT_SMALL_SOCCAR;
-		_boostPads.reserve(LOCS_AMOUNT_BIG + amountSmall);
-
-		for (int i = 0; i < (LOCS_AMOUNT_BIG + amountSmall); i++) {
-			bool isBig = i < LOCS_AMOUNT_BIG;
-
-			btVector3 pos;
-			if (isHoops) {
-				pos = isBig ? LOCS_BIG_HOOPS[i] : LOCS_SMALL_HOOPS[i - LOCS_AMOUNT_BIG];
-			} else {
-				pos = isBig ? LOCS_BIG_SOCCAR[i] : LOCS_SMALL_SOCCAR[i - LOCS_AMOUNT_BIG];
+				_boostPads.push_back(pad);
 			}
+		} else {
+			bool isHoops = gameMode == GameMode::HOOPS;
 
-			BoostPad* pad = BoostPad::_AllocBoostPad();
-			pad->_Setup(isBig, pos);
+			int amountSmall = isHoops ? LOCS_AMOUNT_SMALL_HOOPS : LOCS_AMOUNT_SMALL_SOCCAR;
+			_boostPads.reserve(LOCS_AMOUNT_BIG + amountSmall);
 
-			_boostPads.push_back(pad);
-			_boostPadGrid.Add(pad);
+			for (int i = 0; i < (LOCS_AMOUNT_BIG + amountSmall); i++) {
+
+				BoostPadConfig padConfig;
+
+				padConfig.isBig = i < LOCS_AMOUNT_BIG;
+
+				btVector3 pos;
+				if (isHoops) {
+					padConfig.pos = padConfig.isBig ? LOCS_BIG_HOOPS[i] : LOCS_SMALL_HOOPS[i - LOCS_AMOUNT_BIG];
+				} else {
+					padConfig.pos = padConfig.isBig ? LOCS_BIG_SOCCAR[i] : LOCS_SMALL_SOCCAR[i - LOCS_AMOUNT_BIG];
+				}
+
+				BoostPad* pad = BoostPad::_AllocBoostPad();
+				pad->_Setup(padConfig);
+
+				_boostPads.push_back(pad);
+				_boostPadGrid.Add(pad);
+			}
 		}
 	}
 
@@ -764,8 +783,16 @@ void Arena::Step(int ticksToSimulate) {
 		for (Car* car : _cars) {
 			car->_PostTickUpdate(gameMode, tickTime, _mutatorConfig);
 			car->_FinishPhysicsTick(_mutatorConfig);
-			if (hasArenaStuff)
-				_boostPadGrid.CheckCollision(car);
+			if (hasArenaStuff) {
+				if (_config.useCustomBoostPads) {
+					// TODO: This is quite slow, we should use a sorting method of some sort
+					for (auto& boostPad : _boostPads) {
+						boostPad->_CheckCollide(car);
+					}
+				} else {
+					_boostPadGrid.CheckCollision(car);
+				}
+			}
 		}
 
 		if (hasArenaStuff && !ballOnly)
@@ -806,7 +833,7 @@ bool Arena::IsBallProbablyGoingIn(float maxTime, float extraMargin, Team* goalTe
 			return false;
 
 		float scoreDirSgn = RS_SGN(ballVel.y);
-		float goalY = RLConst::SOCCAR_GOAL_SCORE_BASE_THRESHOLD_Y * scoreDirSgn;
+		float goalY = _mutatorConfig.goalBaseThresholdY * scoreDirSgn;
 		float distToGoal = abs(ballPos.y - goalY);
 
 		float timeToGoal = distToGoal / abs(ballVel.y);
@@ -926,7 +953,7 @@ RSAPI bool Arena::IsBallScored() const {
 	case GameMode::SNOWDAY:
 	{
 		float ballPosY = ball->_rigidBody.getWorldTransform().m_origin.y() * BT_TO_UU;
-		return abs(ballPosY) > (RLConst::SOCCAR_GOAL_SCORE_BASE_THRESHOLD_Y + _mutatorConfig.ballRadius);
+		return abs(ballPosY) > (_mutatorConfig.goalBaseThresholdY + _mutatorConfig.ballRadius);
 	}
 	case GameMode::HOOPS:
 	{
@@ -975,11 +1002,11 @@ Arena::~Arena() {
 			for (BoostPad* boostPad : _boostPads)
 				delete boostPad;
 		}
-
-		delete[] _worldCollisionRBs;
-		delete[] _worldCollisionPlaneShapes;
-		delete[] _worldCollisionBvhShapes;
 	}
+
+	delete[] _worldCollisionRBs;
+	delete[] _worldCollisionPlaneShapes;
+	delete[] _worldCollisionBvhShapes;
 
 	delete _bulletWorldParams.overlappingPairCache;
 	delete _bulletWorldParams.broadphase;
