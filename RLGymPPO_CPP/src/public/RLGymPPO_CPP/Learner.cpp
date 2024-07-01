@@ -1,5 +1,7 @@
 #include "Learner.h"
 
+#include "../../private/RLGymPPO_CPP/Util/SkillTracker.h"
+
 #include <RLGymPPO_CPP/PPO/PPOLearner.h>
 #include <RLGymPPO_CPP/PPO/ExperienceBuffer.h>
 #include <RLGymPPO_CPP/Threading/ThreadAgentManager.h>
@@ -138,6 +140,15 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	} else {
 		renderSender = NULL;
 	}
+
+	if (config.skillTrackerConfig.enabled) {
+		if (config.skillTrackerConfig.envCreateFunc == NULL)
+			config.skillTrackerConfig.envCreateFunc = envCreateFn;
+
+		skillTracker = new SkillTracker(config.skillTrackerConfig);
+	} else {
+		skillTracker = NULL;
+	}
 }
 
 template <typename T>
@@ -167,6 +178,10 @@ void RLGPC::Learner::SaveStats(std::filesystem::path path) {
 	j["cumulative_model_updates"] = ppo->cumulativeModelUpdates;
 	j["epoch"] = totalEpochs;
 	
+	if (skillTracker) {
+		j["skill_rating"] = skillTracker->curRating;
+	}
+
 	auto& rrs = j["reward_running_stats"];
 	{
 		rrs["mean"] = MakeJSONArray(returnStats.runningMean);
@@ -197,6 +212,10 @@ void RLGPC::Learner::LoadStats(std::filesystem::path path) {
 	ppo->cumulativeModelUpdates = j["cumulative_model_updates"];
 	totalEpochs = j["epoch"];
 	
+	if (skillTracker && j.contains("skill_rating")) {
+		skillTracker->curRating = j["skill_rating"];
+	}
+
 	auto& rrs = j["reward_running_stats"];
 	{
 		returnStats = WelfordRunningStat(rrs["shape"]);
@@ -419,6 +438,17 @@ void RLGPC::Learner::Learn() {
 		epochTimer.Reset(); // Reset now otherwise we can have issues with the timer and thread input-locking
 
 		double consumptionTime = relEpochTime - relCollectionTime;
+
+		if (skillTracker) {
+			RG_LOG("Running skill eval game(s)...");
+
+			if (config.skillTrackerConfig.stepCallback == NULL)
+				skillTracker->config.stepCallback = stepCallback;
+
+			skillTracker->RunGames(ppo->policy, timestepsCollected);
+			report["Skill Rating"] = skillTracker->curRating;
+			report["Skill Rating Delta"] = skillTracker->lastRatingDelta;
+		}
 
 		// Get all metrics from agent manager
 		agentMgr->GetMetrics(report);

@@ -11,11 +11,16 @@ namespace RLGPC {
 		torch::nn::Sequential seq;
 		int inputAmount;
 		int actionAmount;
+		IList layerSizes;
 
 		// Min probability that an action will be taken
 		constexpr static float ACTION_MIN_PROB = 1e-11;
 
 		DiscretePolicy(int inputAmount, int actionAmount, const IList& layerSizes, torch::Device device);
+
+		RG_NO_COPY(DiscretePolicy);
+
+		void CopyTo(DiscretePolicy& to);
 
 		torch::Tensor GetOutput(torch::Tensor input) {
 			return seq->forward(input);
@@ -33,5 +38,7 @@ namespace RLGPC {
 			torch::Tensor entropy;
 		};
 		BackpropResult GetBackpropData(torch::Tensor obs, torch::Tensor acts);
+
+		~DiscretePolicy() = default;
 	};
 }

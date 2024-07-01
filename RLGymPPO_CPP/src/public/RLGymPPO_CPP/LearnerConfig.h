@@ -1,6 +1,7 @@
 #pragma once
 #include "Lists.h"
 #include "PPO/PPOLearnerConfig.h"
+#include <RLGymPPO_CPP/Util/SkillTrackerConfig.h>
 
 namespace RLGPC {
 	enum class LearnerDeviceType {
@@ -74,5 +75,7 @@ namespace RLGPC {
 		std::string metricsProjectName = "rlgymppo-cpp"; // Project name for the python metrics receiver
 		std::string metricsGroupName = "unnamed-runs"; // Group name for the python metrics receiver
 		std::string metricsRunName = "rlgymppo-cpp-run"; // Run name for the python metrics receiver
+
+		SkillTrackerConfig skillTrackerConfig = {};
 	};
 }

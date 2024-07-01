@@ -2,9 +2,10 @@
 
 #include <torch/nn/modules/linear.h>
 #include <torch/nn/modules/activation.h>
+#include <private/RLGymPPO_CPP/FrameworkTorch.h>
 
-RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const IList& layerSizes, torch::Device device) : 
-	device(device), inputAmount(inputAmount), actionAmount(actionAmount) {
+RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const IList& layerSizes, torch::Device device) :
+	device(device), inputAmount(inputAmount), actionAmount(actionAmount), layerSizes(layerSizes) {
 	using namespace torch;
 
 	seq = {};
@@ -26,6 +27,19 @@ RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const I
 	register_module("seq", seq);
 
 	this->to(device, true);
+}
+
+void RLGPC::DiscretePolicy::CopyTo(DiscretePolicy& to) {
+	RG_NOGRAD;
+	try {
+		auto fromParams = this->parameters();
+		auto toParams = to.parameters();
+		for (int i = 0; i < fromParams.size(); i++) {
+			toParams[i].copy_(fromParams[i], true);
+		}
+	} catch (std::exception& e) {
+		RG_ERR_CLOSE("DiscretePolicy::CopyTo() exception: " << e.what());
+	}
 }
 
 torch::Tensor RLGPC::DiscretePolicy::GetActionProbs(torch::Tensor obs) {

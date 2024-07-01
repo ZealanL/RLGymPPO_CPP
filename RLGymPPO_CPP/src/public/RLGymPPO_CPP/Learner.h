@@ -22,6 +22,8 @@ namespace RLGPC {
 		MetricSender* metricSender;
 		RenderSender* renderSender;
 
+		struct SkillTracker* skillTracker;
+
 		int obsSize;
 		int actionAmount;
 
