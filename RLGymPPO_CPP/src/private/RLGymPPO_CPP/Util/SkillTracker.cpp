@@ -33,6 +33,7 @@ RLGPC::SkillTracker::SkillTracker(const SkillTrackerConfig& config, RenderSender
 		games.push_back(gameInst);
 
 		gameTeamSwaps.push_back(i % 2);
+		gameOldPolicyIndices.push_back(0);
 	}
 }
 
@@ -74,7 +75,7 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 			game->stepCallback = config.stepCallback;
 
 			bool teamSwap = gameTeamSwaps[gameIdx];
-			int oldPolicyIdx = RocketSim::Math::RandInt(0, oldPolicies.size());
+			int oldPolicyIdx = gameOldPolicyIndices[gameIdx];
 			DiscretePolicy* oldPolicy = oldPolicies[oldPolicyIdx];
 
 			int tickSkip = game->gym->tickSkip;
@@ -124,8 +125,10 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 					}
 				}
 
-				if (stepResult.done)
+				if (stepResult.done) {
 					gameTeamSwaps[gameIdx] = RocketSim::Math::RandFloat() > 0.5f;
+					gameOldPolicyIndices[gameIdx] = RocketSim::Math::RandInt(0, oldPolicies.size());
+				}
 
 				if (renderSender) {
 					renderSender->Send(stepResult.state, game->match->prevActions);

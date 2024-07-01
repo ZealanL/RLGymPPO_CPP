@@ -14,6 +14,7 @@ namespace RLGPC {
 
 		// To prevent potential bias towards 1 team, the team assignment for old vs current policy is randomized every env reset
 		std::vector<bool> gameTeamSwaps;
+		std::vector<int> gameOldPolicyIndices;
 
 		SkillTrackerConfig config;
 
