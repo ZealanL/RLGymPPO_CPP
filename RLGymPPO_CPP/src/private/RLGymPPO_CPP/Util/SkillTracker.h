@@ -10,11 +10,22 @@ namespace RLGPC {
 	struct SkillTracker {
 		RenderSender* renderSender = NULL;
 
-		std::vector<GameInst*> games;
+		struct Game {
+			GameInst* gameInst;
+			bool teamSwap = false; // To prevent potential bias towards 1 team, the team assignment for old vs current policy is randomized every env reset
+			int oldPolicyIndex = 0;
 
-		// To prevent potential bias towards 1 team, the team assignment for old vs current policy is randomized every env reset
-		std::vector<bool> gameTeamSwaps;
-		std::vector<int> gameOldPolicyIndices;
+			Game(GameInst* gameInst, int numPolicies) : gameInst(gameInst) {
+				Reset(numPolicies);
+			}
+
+			void Reset(int numPolicies) {
+				teamSwap = RocketSim::Math::RandFloat() > 0.5f;
+				oldPolicyIndex = RocketSim::Math::RandInt(0, numPolicies);
+			}
+		};
+
+		std::vector<Game> games;
 
 		SkillTrackerConfig config;
 

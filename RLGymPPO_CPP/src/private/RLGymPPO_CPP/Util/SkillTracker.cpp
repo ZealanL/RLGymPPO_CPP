@@ -30,10 +30,7 @@ RLGPC::SkillTracker::SkillTracker(const SkillTrackerConfig& config, RenderSender
 		GameInst* gameInst = new GameInst(envCreateResult.gym, envCreateResult.match);
 		gameInst->match->rewardFn = g_DummyReward;
 		gameInst->Start();
-		games.push_back(gameInst);
-
-		gameTeamSwaps.push_back(i % 2);
-		gameOldPolicyIndices.push_back(0);
+		games.push_back(Game(gameInst, 1));
 	}
 }
 
@@ -42,7 +39,7 @@ RLGPC::SkillTracker::~SkillTracker() {
 		delete policy;
 
 	for (auto game : games)
-		delete game;
+		delete game.gameInst;
 }
 
 void RLGPC::SkillTracker::UpdateRatings(float& winner, float& loser) {
@@ -71,14 +68,13 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 		float timePerGame = config.simTime / games.size();
 
 		for (int gameIdx = 0; gameIdx < games.size(); gameIdx++) {
-			auto game = games[gameIdx];
-			game->stepCallback = config.stepCallback;
+			auto& game = games[gameIdx];
+			auto& gameInst = game.gameInst;
+			gameInst->stepCallback = config.stepCallback;
 
-			bool teamSwap = gameTeamSwaps[gameIdx];
-			int oldPolicyIdx = gameOldPolicyIndices[gameIdx];
-			DiscretePolicy* oldPolicy = oldPolicies[oldPolicyIdx];
+			DiscretePolicy* oldPolicy = oldPolicies[game.oldPolicyIndex];
 
-			int tickSkip = game->gym->tickSkip;
+			int tickSkip = gameInst->gym->tickSkip;
 			int numSteps = timePerGame * 120 / tickSkip;
 			if (numSteps <= 0)
 				RG_ERR_CLOSE(ERR_PREFIX << "simTime is too low for the number of games, there is not enough time per game to step");
@@ -86,14 +82,14 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 			for (int i = 0; i < numSteps; i++) {
 				RG_NOGRAD;
 
-				FList2 curObsSet = game->curObs;
+				FList2 curObsSet = gameInst->curObs;
 
 				FList2 teamObsSets[2] = {};
-				for (int j = 0; j < game->match->playerAmount; j++)
-					teamObsSets[(int)game->gym->prevState.players[j].team].push_back(curObsSet[j]);
+				for (int j = 0; j < gameInst->match->playerAmount; j++)
+					teamObsSets[(int)gameInst->gym->prevState.players[j].team].push_back(curObsSet[j]);
 
-				auto bluePolicy = teamSwap ? oldPolicy : curPolicy;
-				auto orangePolicy = teamSwap ? curPolicy : oldPolicy;
+				auto bluePolicy = game.teamSwap ? oldPolicy : curPolicy;
+				auto orangePolicy = game.teamSwap ? curPolicy : oldPolicy;
 
 				auto blueObs = FLIST2_TO_TENSOR(teamObsSets[0]).to(bluePolicy->device);
 				auto orangeObs = FLIST2_TO_TENSOR(teamObsSets[1]).to(orangePolicy->device);
@@ -102,8 +98,8 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 				auto orangeActions = TENSOR_TO_ILIST(orangePolicy->GetAction(orangeObs, 1).action);
 
 				IList allActions = {};
-				for (int j = 0, blueIdx = 0, orangeIdx = 0; j < game->match->playerAmount; j++) {
-					Team playerTeam = game->gym->prevState.players[j].team;
+				for (int j = 0, blueIdx = 0, orangeIdx = 0; j < gameInst->match->playerAmount; j++) {
+					Team playerTeam = gameInst->gym->prevState.players[j].team;
 					if (playerTeam == Team::BLUE) {
 						allActions.push_back(blueActions[blueIdx]);
 						blueIdx++;
@@ -113,26 +109,24 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 					}
 				}
 
-				auto stepResult = game->Step(allActions);
+				auto stepResult = gameInst->Step(allActions);
 				if (RLGSC::Math::IsBallScored(stepResult.state.ball.pos)) {
 					auto scoringPolicy = (stepResult.state.ball.pos.y > 0) ? bluePolicy : orangePolicy;
 					if (scoringPolicy == curPolicy) {
 						// Current policy scored
-						UpdateRatings(curRating, oldRatings[oldPolicyIdx]);
+						UpdateRatings(curRating, oldRatings[game.oldPolicyIndex]);
 					} else {
 						// Old policy scored
-						UpdateRatings(oldRatings[oldPolicyIdx], curRating);
+						UpdateRatings(oldRatings[game.oldPolicyIndex], curRating);
 					}
 				}
 
-				if (stepResult.done) {
-					gameTeamSwaps[gameIdx] = RocketSim::Math::RandFloat() > 0.5f;
-					gameOldPolicyIndices[gameIdx] = RocketSim::Math::RandInt(0, oldPolicies.size());
-				}
+				if (stepResult.done)
+					game.Reset(oldPolicies.size());
 
 				if (renderSender) {
-					renderSender->Send(stepResult.state, game->match->prevActions);
-					float sleepTime = game->gym->tickSkip / 120.f;
+					renderSender->Send(stepResult.state, gameInst->match->prevActions);
+					float sleepTime = gameInst->gym->tickSkip / 120.f;
 					std::this_thread::sleep_for(std::chrono::microseconds(int64_t(sleepTime * 1000 * 1000)));
 				}
 			}
@@ -152,7 +146,7 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 	if (timestepsSinceVersionMade >= config.timestepsPerVersion) {
 		// Reset all games
 		for (auto game : games)
-			game->Start();
+			game.gameInst->Start();
 
 		timestepsSinceVersionMade = 0;
 
