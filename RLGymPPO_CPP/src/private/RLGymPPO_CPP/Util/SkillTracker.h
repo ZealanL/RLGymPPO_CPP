@@ -1,12 +1,15 @@
 #pragma once
 #include "../FrameworkTorch.h"
 #include "../../../public/RLGymPPO_CPP/Util/SkillTrackerConfig.h"
+#include "../../../public/RLGymPPO_CPP/Util/RenderSender.h"
 #include "../PPO/DiscretePolicy.h"
 
 #include <public/RLGymPPO_CPP/Threading/GameInst.h>
 
 namespace RLGPC {
 	struct SkillTracker {
+		RenderSender* renderSender = NULL;
+
 		std::vector<GameInst*> games;
 
 		// To prevent potential bias towards 1 team, the team assignment for old vs current policy is randomized every env reset
@@ -21,7 +24,7 @@ namespace RLGPC {
 		float curRating;
 		float lastRatingDelta = 0;
 
-		SkillTracker(const SkillTrackerConfig& config);
+		SkillTracker(const SkillTrackerConfig& config, RenderSender* renderSender = NULL);
 
 		RG_NO_COPY(SkillTracker);
 

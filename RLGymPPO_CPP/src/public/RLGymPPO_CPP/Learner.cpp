@@ -145,7 +145,7 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 		if (config.skillTrackerConfig.envCreateFunc == NULL)
 			config.skillTrackerConfig.envCreateFunc = envCreateFn;
 
-		skillTracker = new SkillTracker(config.skillTrackerConfig);
+		skillTracker = new SkillTracker(config.skillTrackerConfig, renderSender);
 	} else {
 		skillTracker = NULL;
 	}

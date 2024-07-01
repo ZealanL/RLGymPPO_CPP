@@ -12,7 +12,8 @@ class DummyReward : public RLGSC::RewardFunction {
 
 static thread_local DummyReward* g_DummyReward = new DummyReward();
 
-RLGPC::SkillTracker::SkillTracker(const SkillTrackerConfig& config) : config(config) {
+RLGPC::SkillTracker::SkillTracker(const SkillTrackerConfig& config, RenderSender* renderSender) 
+	: config(config), renderSender(renderSender) {
 
 	RG_ASSERT(config.numEnvs > 0);
 	RG_ASSERT(config.timestepsPerVersion >= 0);
@@ -70,8 +71,9 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 
 		for (int gameIdx = 0; gameIdx < games.size(); gameIdx++) {
 			auto game = games[gameIdx];
-			bool teamSwap = gameTeamSwaps[gameIdx];
+			game->stepCallback = config.stepCallback;
 
+			bool teamSwap = gameTeamSwaps[gameIdx];
 			int oldPolicyIdx = RocketSim::Math::RandInt(0, oldPolicies.size());
 			DiscretePolicy* oldPolicy = oldPolicies[oldPolicyIdx];
 
@@ -112,17 +114,24 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 
 				auto stepResult = game->Step(allActions);
 				if (RLGSC::Math::IsBallScored(stepResult.state.ball.pos)) {
-					if ((stepResult.state.ball.pos.y > 0) != teamSwap) {
+					auto scoringPolicy = (stepResult.state.ball.pos.y > 0) ? bluePolicy : orangePolicy;
+					if (scoringPolicy == curPolicy) {
 						// Current policy scored
 						UpdateRatings(curRating, oldRatings[oldPolicyIdx]);
 					} else {
-						// Orange scored
+						// Old policy scored
 						UpdateRatings(oldRatings[oldPolicyIdx], curRating);
 					}
 				}
 
 				if (stepResult.done)
 					gameTeamSwaps[gameIdx] = RocketSim::Math::RandFloat() > 0.5f;
+
+				if (renderSender) {
+					renderSender->Send(stepResult.state, game->match->prevActions);
+					float sleepTime = game->gym->tickSkip / 120.f;
+					std::this_thread::sleep_for(std::chrono::microseconds(int64_t(sleepTime * 1000 * 1000)));
+				}
 			}
 		}
 
