@@ -16,7 +16,7 @@ namespace RLGPC {
 		StepCallback stepCallback = NULL;
 
 		int numEnvs = 1; // Number of environments for evaluation
-		float simTime = 30; // Time (in seconds) to simulate each iteration
+		float simTime = 15; // Time (in seconds) to simulate each iteration
 		int64_t timestepsPerVersion = 50 * 1000 * 1000; // Amout of timesteps between saving versions
 		int maxVersions = 4; // Maximum amount of versions to store
 
