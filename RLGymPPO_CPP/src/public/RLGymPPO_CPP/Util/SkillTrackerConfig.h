@@ -24,6 +24,10 @@ namespace RLGPC {
 		// If false, we will wait until timestepsPerVersion has passed to start comparing skill
 		bool startWithVersion = true; 
 
+		// If true, only kickoff states are used in eval matches, 
+		//	and the statesetter returned from the env create func is disgarded
+		bool kickoffStatesOnly = true;
+
 		float ratingInc = 5; // Rating increment scale per-goal
 		float initialRating = 1000; // Initial rating of the current version
 	};

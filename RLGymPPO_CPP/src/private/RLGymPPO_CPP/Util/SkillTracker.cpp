@@ -1,5 +1,6 @@
 #include "SkillTracker.h"
 #include <RLGymSim_CPP/Utils/RewardFunctions/CombinedReward.h>
+#include <RLGymSim_CPP/Utils/StateSetters/KickoffState.h>
 #include <RLGymSim_CPP/Math.h>
 
 using namespace RLGSC;
@@ -28,6 +29,10 @@ RLGPC::SkillTracker::SkillTracker(const SkillTrackerConfig& config, RenderSender
 
 		auto envCreateResult = config.envCreateFunc();
 		GameInst* gameInst = new GameInst(envCreateResult.gym, envCreateResult.match);
+
+		if (config.kickoffStatesOnly)
+			gameInst->match->stateSetter = new RLGSC::KickoffState();
+
 		gameInst->match->rewardFn = g_DummyReward;
 		gameInst->Start();
 		games.push_back(Game(gameInst, 1));
