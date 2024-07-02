@@ -15,7 +15,7 @@ namespace RLGPC {
 		// If NULL, the learner's step callback func is used
 		StepCallback stepCallback = NULL;
 
-		int numEnvs = 1; // Number of environments for evaluation
+		int numEnvs = 4; // Number of environments for evaluation
 		float simTime = 15; // Time (in seconds) to simulate each iteration
 		int64_t timestepsPerVersion = 50 * 1000 * 1000; // Amout of timesteps between saving versions
 		int maxVersions = 4; // Maximum amount of versions to store
