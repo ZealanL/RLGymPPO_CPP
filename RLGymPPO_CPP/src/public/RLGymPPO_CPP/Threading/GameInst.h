@@ -15,6 +15,10 @@ namespace RLGPC {
 
 	class RG_IMEXPORT GameInst {
 	public:
+
+		// This game instance is being used for evaluation instead of training
+		bool isEval = false;
+
 		RLGSC::Gym* gym;
 		RLGSC::Match* match;
 

@@ -29,7 +29,7 @@ RLGPC::SkillTracker::SkillTracker(const SkillTrackerConfig& config, RenderSender
 
 		auto envCreateResult = config.envCreateFunc();
 		GameInst* gameInst = new GameInst(envCreateResult.gym, envCreateResult.match);
-
+		gameInst->isEval = true;
 		if (config.kickoffStatesOnly)
 			gameInst->match->stateSetter = new RLGSC::KickoffState();
 
