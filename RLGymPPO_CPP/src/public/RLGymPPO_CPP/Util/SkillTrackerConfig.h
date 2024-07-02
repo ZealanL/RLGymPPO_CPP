@@ -20,6 +20,10 @@ namespace RLGPC {
 		int64_t timestepsPerVersion = 50 * 1000 * 1000; // Amout of timesteps between saving versions
 		int maxVersions = 4; // Maximum amount of versions to store
 
+		// If true, the skill tracker will attempt to load old versions using old checkpoints
+		// The old version must have a saved skill rating
+		bool loadOldVersionsFromCheckpoints = true;
+
 		// When initialized, add the current version as the first previous version
 		// If false, we will wait until timestepsPerVersion has passed to start comparing skill
 		bool startWithVersion = true; 

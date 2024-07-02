@@ -36,6 +36,7 @@ namespace RLGPC {
 
 		void SaveTo(std::filesystem::path folderPath);
 		void LoadFrom(std::filesystem::path folderPath);
+		RLGPC::DiscretePolicy* LoadAdditionalPolicy(std::filesystem::path folderPath);
 
 		void UpdateLearningRates(float policyLR, float criticLR);
 	};

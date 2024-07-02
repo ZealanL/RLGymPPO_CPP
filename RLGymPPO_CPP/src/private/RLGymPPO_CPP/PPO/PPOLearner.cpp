@@ -269,6 +269,16 @@ std::vector<uint64_t> GetSeqSizes(torch::nn::Sequential& seq) {
 	return result;
 }
 
+constexpr const char* MODEL_FILE_NAMES[] = {
+		"PPO_POLICY.lt",
+		"PPO_CRITIC.lt",
+};
+
+constexpr const char* OPTIM_FILE_NAMES[] = {
+	"PPO_POLICY_OPTIM.lt",
+	"PPO_CRITIC_OPTIM.lt",
+};
+
 void TorchLoadSaveSeq(torch::nn::Sequential seq, std::filesystem::path path, c10::Device device, bool load) {
 	if (load) {
 		auto streamIn = std::ifstream(path, std::ios::binary);
@@ -312,16 +322,6 @@ void TorchLoadSaveSeq(torch::nn::Sequential seq, std::filesystem::path path, c10
 }
 
 void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPath, bool load) {
-
-	constexpr const char* MODEL_FILE_NAMES[] = {
-		"PPO_POLICY.lt",
-		"PPO_CRITIC.lt",
-	};
-
-	constexpr const char* OPTIM_FILE_NAMES[] = {
-		"PPO_POLICY_OPTIM.lt",
-		"PPO_CRITIC_OPTIM.lt",
-	};
 
 	if (load) {
 		for (const char* fileName : MODEL_FILE_NAMES)
@@ -385,6 +385,12 @@ void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPa
 void RLGPC::PPOLearner::SaveTo(std::filesystem::path folderPath) {
 	RG_LOG("PPOLearner(): Saving models to: " << folderPath);
 	TorchLoadSaveAll(this, folderPath, false);
+}
+
+RLGPC::DiscretePolicy* RLGPC::PPOLearner::LoadAdditionalPolicy(std::filesystem::path folderPath) {
+	RLGPC::DiscretePolicy* newPolicy = new RLGPC::DiscretePolicy(policy->inputAmount, policy->actionAmount, policy->layerSizes, policy->device);
+	TorchLoadSaveSeq(newPolicy->seq, folderPath / MODEL_FILE_NAMES[0], newPolicy->device, true);
+	return newPolicy;
 }
 
 void RLGPC::PPOLearner::LoadFrom(std::filesystem::path folderPath)  {

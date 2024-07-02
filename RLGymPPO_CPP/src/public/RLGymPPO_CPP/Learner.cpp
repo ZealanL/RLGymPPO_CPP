@@ -123,9 +123,6 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("\tCreating " << config.numThreads << " agents...");
 	agentMgr->CreateAgents(envCreateFn, config.numThreads, config.numGamesPerThread);
 
-	if (!config.checkpointLoadFolder.empty())
-		Load();
-
 	if (config.sendMetrics) {
 		metricSender = new MetricSender(config.metricsProjectName, config.metricsGroupName, config.metricsRunName, runID);
 	} else {
@@ -149,6 +146,9 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	} else {
 		skillTracker = NULL;
 	}
+
+	if (!config.checkpointLoadFolder.empty())
+		Load();
 }
 
 template <typename T>
@@ -296,6 +296,63 @@ void RLGPC::Learner::Load() {
 		LoadStats(loadFolder / STATS_FILE_NAME);
 		ppo->LoadFrom(loadFolder);
 		RG_LOG(" > Done.");
+
+		if (config.skillTrackerConfig.loadOldVersionsFromCheckpoints) {
+			RG_LOG("Attempting to load " << config.skillTrackerConfig.maxVersions << " old versions for skill tracker...");
+
+			int64_t targetInterval = config.skillTrackerConfig.timestepsPerVersion;
+			int64_t targetTimesteps = (int64_t)totalTimesteps;
+
+			int64_t maxAcceptableOverage = targetInterval;
+
+			for (int i = 0; i < config.skillTrackerConfig.maxVersions; i++) {
+				targetTimesteps -= targetInterval;
+
+				float bestRating = -1;
+				int64_t bestTimesteps = -1;
+				for (auto entry : std::filesystem::directory_iterator(config.checkpointLoadFolder)) {
+					if (entry.is_directory()) {
+						auto name = entry.path().filename();
+						try {
+							int64_t nameVal = std::stoll(name);
+
+							if (nameVal < targetTimesteps + targetInterval) {
+								if (bestTimesteps == -1 || abs(nameVal - targetTimesteps) < abs(bestTimesteps - targetTimesteps)) {
+
+									std::ifstream fIn(entry.path() / STATS_FILE_NAME);
+									if (fIn.good()) {
+										using namespace nlohmann;
+										json j = json::parse(fIn);
+
+										if (j.contains("skill_rating")) {
+											bestRating = j["skill_rating"];
+											bestTimesteps = nameVal;
+										}
+									}
+								}
+							}
+
+						} catch (...) {}
+					}
+				}
+
+				if (bestTimesteps != -1 && bestTimesteps >= targetTimesteps - maxAcceptableOverage) {
+					RG_LOG(
+						" > [" << i << "]: Found at " << bestTimesteps << 
+						" (target = " << targetTimesteps << ", delta = " << (targetTimesteps - bestTimesteps) << "), " <<
+						"rating: " << bestRating
+					);
+
+					skillTracker->AppendOldPolicy(
+						ppo->LoadAdditionalPolicy(config.checkpointLoadFolder / std::to_string(bestTimesteps)),
+						bestRating
+					);
+
+				} else {
+					RG_LOG(" > [" << i << "]: None found");
+				}
+			}
+		}
 	} else {
 		RG_LOG(" > No checkpoints found, starting new model.")
 	}

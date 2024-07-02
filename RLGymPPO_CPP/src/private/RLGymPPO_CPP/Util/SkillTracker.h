@@ -44,6 +44,11 @@ namespace RLGPC {
 
 		void UpdateRatings(float& winner, float& loser);
 
+		void AppendOldPolicy(DiscretePolicy* policy, float rating) {
+			oldPolicies.push_back(policy);
+			oldRatings.push_back(rating);
+		}
+
 		~SkillTracker();
 	};
 }
