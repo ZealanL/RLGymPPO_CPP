@@ -388,8 +388,12 @@ void RLGPC::PPOLearner::SaveTo(std::filesystem::path folderPath) {
 }
 
 RLGPC::DiscretePolicy* RLGPC::PPOLearner::LoadAdditionalPolicy(std::filesystem::path folderPath) {
+	std::filesystem::path policyPath = folderPath / MODEL_FILE_NAMES[0];
+	if (!std::filesystem::exists(policyPath))
+		return NULL;
+
 	RLGPC::DiscretePolicy* newPolicy = new RLGPC::DiscretePolicy(policy->inputAmount, policy->actionAmount, policy->layerSizes, policy->device);
-	TorchLoadSaveSeq(newPolicy->seq, folderPath / MODEL_FILE_NAMES[0], newPolicy->device, true);
+	TorchLoadSaveSeq(newPolicy->seq, policyPath, newPolicy->device, true);
 	return newPolicy;
 }
 

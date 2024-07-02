@@ -345,10 +345,16 @@ void RLGPC::Learner::Load() {
 						"rating: " << bestRating
 					);
 
-					skillTracker->AppendOldPolicy(
-						ppo->LoadAdditionalPolicy(config.checkpointLoadFolder / std::to_string(bestTimesteps)),
-						bestRating
-					);
+					auto oldPolicy = ppo->LoadAdditionalPolicy(config.checkpointLoadFolder / std::to_string(bestTimesteps));
+
+					if (oldPolicy) {
+						skillTracker->AppendOldPolicy(
+							oldPolicy,
+							bestRating
+						);
+					} else {
+						RG_LOG(" > FAILED to load policy, policy does not exist in checkpoint!")
+					}
 
 				} else {
 					RG_LOG(" > [" << i << "]: None found");
