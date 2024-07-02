@@ -123,12 +123,6 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("\tCreating " << config.numThreads << " agents...");
 	agentMgr->CreateAgents(envCreateFn, config.numThreads, config.numGamesPerThread);
 
-	if (config.sendMetrics) {
-		metricSender = new MetricSender(config.metricsProjectName, config.metricsGroupName, config.metricsRunName, runID);
-	} else {
-		metricSender = NULL;
-	}
-
 	if (config.renderMode) {
 		renderSender = new RenderSender();
 		agentMgr->renderSender = renderSender;
@@ -149,6 +143,14 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 
 	if (!config.checkpointLoadFolder.empty())
 		Load();
+
+	if (config.sendMetrics) {
+		if (!runID.empty())
+			RG_LOG("\tRun ID: " << runID);
+		metricSender = new MetricSender(config.metricsProjectName, config.metricsGroupName, config.metricsRunName, runID);
+	} else {
+		metricSender = NULL;
+	}
 }
 
 template <typename T>
