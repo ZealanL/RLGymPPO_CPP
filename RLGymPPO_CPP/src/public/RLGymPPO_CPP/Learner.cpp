@@ -91,7 +91,7 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 
 	if (RocketSim::GetStage() != RocketSimStage::INITIALIZED) {
 		RG_LOG("\tInitializing RocketSim...");
-		RocketSim::Init("collision_meshes");
+		RocketSim::Init("collision_meshes", true);
 	}
 
 	{

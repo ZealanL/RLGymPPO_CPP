@@ -9,7 +9,9 @@ static bool boostPadIndexMapBuilt = false;
 static std::mutex boostPadIndexMapMutex = {};
 void _BuildBoostPadIndexMap(Arena* arena) {
 	constexpr const char* ERROR_PREFIX = "_BuildBoostPadIndexMap(): ";
+#ifdef RG_VERBOSE
 	RG_LOG("Building boost pad index map...");
+#endif
 
 	if (arena->_boostPads.size() != CommonValues::BOOST_LOCATIONS_AMOUNT) {
 		RG_ERR_CLOSE(
@@ -41,7 +43,9 @@ void _BuildBoostPadIndexMap(Arena* arena) {
 			RS_ERR_CLOSE(ERROR_PREFIX << "Failed to find matching pad at " << targetPos);
 	}
 
+#ifdef RG_VERBOSE
 	RG_LOG(" > Done");
+#endif
 	boostPadIndexMapBuilt = true;
 }
 
