@@ -41,6 +41,8 @@ namespace RLGPC {
 		std::vector<RatingSet> oldRatings;
 		int64_t timestepsSinceVersionMade = 0;
 
+		uint64_t runCounter = 0;
+
 		std::unordered_set<std::string> modeNames = {};
 
 		RatingSet curRating;

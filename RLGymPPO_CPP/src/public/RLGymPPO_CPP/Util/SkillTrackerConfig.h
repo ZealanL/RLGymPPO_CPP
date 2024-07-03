@@ -16,9 +16,13 @@ namespace RLGPC {
 		StepCallback stepCallback = NULL;
 
 		int numEnvs = 4; // Number of environments for evaluation
-		float simTime = 15; // Time (in seconds) to simulate each iteration
+		float simTime = 60; // Time (in seconds) to simulate each iteration
+		int updateInterval = 4; // How many iterations between skill rating updates
 		int64_t timestepsPerVersion = 50 * 1000 * 1000; // Amout of timesteps between saving versions
 		int maxVersions = 4; // Maximum amount of versions to store
+
+		// Number of threads to run in parallel (more is only better to an extent)
+		int numThreads = 8; 
 
 		// If true, skill ratings are tracked independently per-mode
 		// A mode is determined by team sizes, and any mode is supported (1v1, 3v3, 4v4, 2v5, 1v0)
