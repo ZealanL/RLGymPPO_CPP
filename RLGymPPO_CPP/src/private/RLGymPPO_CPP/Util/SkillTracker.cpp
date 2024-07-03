@@ -258,8 +258,7 @@ RLGPC::SkillTracker::RatingSet RLGPC::SkillTracker::LoadRatingSet(const nlohmann
 	constexpr const char* ERR_PREFIX = "RLGPC::SkillTracker::LoadRatingSet(): ";
 
 	RatingSet result = {};
-
-	if (!json.is_number()) {
+	if (json.is_object()) {
 		if (config.perModeRatings) {
 			for (auto& modeName : modeNames) {
 				if (!json.contains(modeName)) {
@@ -276,6 +275,8 @@ RLGPC::SkillTracker::RatingSet RLGPC::SkillTracker::LoadRatingSet(const nlohmann
 			result.data[""] = config.initialRating;
 		}
 	} else {
+		RG_ASSERT(json.is_number());
+
 		if (config.perModeRatings) {
 			RG_LOG(ERR_PREFIX << "Loaded ratings are not per-mode, all mode ratings will be set to the loaded rating: " << (float)json);
 			for (auto& modeName : modeNames)
