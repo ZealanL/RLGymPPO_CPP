@@ -20,6 +20,10 @@ namespace RLGPC {
 		int64_t timestepsPerVersion = 50 * 1000 * 1000; // Amout of timesteps between saving versions
 		int maxVersions = 4; // Maximum amount of versions to store
 
+		// If true, skill ratings are tracked independently per-mode
+		// A mode is determined by team sizes, and any mode is supported (1v1, 3v3, 4v4, 2v5, 1v0)
+		bool perModeRatings = true;
+
 		// If true, the skill tracker will attempt to load old versions using old checkpoints
 		// The old version must have a saved skill rating
 		bool loadOldVersionsFromCheckpoints = true;

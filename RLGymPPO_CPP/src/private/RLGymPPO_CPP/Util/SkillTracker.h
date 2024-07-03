@@ -4,6 +4,8 @@
 #include "../../../public/RLGymPPO_CPP/Util/RenderSender.h"
 #include "../PPO/DiscretePolicy.h"
 
+#include "../../libsrc/json/nlohmann/json.hpp"
+
 #include <public/RLGymPPO_CPP/Threading/GameInst.h>
 
 namespace RLGPC {
@@ -29,12 +31,19 @@ namespace RLGPC {
 
 		SkillTrackerConfig config;
 
+		struct RatingSet {
+			std::map<std::string, float> data;
+		};
+
+		RatingSet LoadRatingSet(const nlohmann::json& json, bool warn = true);
+
 		std::vector<DiscretePolicy*> oldPolicies;
-		std::vector<float> oldRatings;
+		std::vector<RatingSet> oldRatings;
 		int64_t timestepsSinceVersionMade = 0;
 
-		float curRating;
-		float lastRatingDelta = 0;
+		std::unordered_set<std::string> modeNames = {};
+
+		RatingSet curRating;
 
 		SkillTracker(const SkillTrackerConfig& config, RenderSender* renderSender = NULL);
 
@@ -42,9 +51,9 @@ namespace RLGPC {
 
 		void RunGames(DiscretePolicy* curPolicy, int64_t timestepsDelta);
 
-		void UpdateRatings(float& winner, float& loser);
+		void UpdateRatings(RatingSet& winner, RatingSet& loser, std::string mode);
 
-		void AppendOldPolicy(DiscretePolicy* policy, float rating) {
+		void AppendOldPolicy(DiscretePolicy* policy, RatingSet rating) {
 			oldPolicies.push_back(policy);
 			oldRatings.push_back(rating);
 		}

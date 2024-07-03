@@ -181,7 +181,14 @@ void RLGPC::Learner::SaveStats(std::filesystem::path path) {
 	j["epoch"] = totalEpochs;
 	
 	if (skillTracker) {
-		j["skill_rating"] = skillTracker->curRating;
+		if (skillTracker->config.perModeRatings) {
+			json ratings = {};
+			for (auto& pair : skillTracker->curRating.data)
+				ratings[pair.first] = pair.second;
+			j["skill_rating"] = ratings;
+		} else {
+			j["skill_rating"] = skillTracker->curRating.data[""];
+		}
 	}
 
 	auto& rrs = j["reward_running_stats"];
@@ -215,7 +222,7 @@ void RLGPC::Learner::LoadStats(std::filesystem::path path) {
 	totalEpochs = j["epoch"];
 	
 	if (skillTracker && j.contains("skill_rating")) {
-		skillTracker->curRating = j["skill_rating"];
+		skillTracker->curRating = skillTracker->LoadRatingSet(j["skill_rating"]);
 	}
 
 	auto& rrs = j["reward_running_stats"];
@@ -309,8 +316,8 @@ void RLGPC::Learner::Load() {
 
 			for (int i = 0; i < config.skillTrackerConfig.maxVersions; i++) {
 				targetTimesteps -= targetInterval;
-
-				float bestRating = -1;
+				
+				nlohmann::json bestRating = {};
 				int64_t bestTimesteps = -1;
 				for (auto entry : std::filesystem::directory_iterator(config.checkpointLoadFolder)) {
 					if (entry.is_directory()) {
@@ -350,7 +357,7 @@ void RLGPC::Learner::Load() {
 					if (oldPolicy) {
 						skillTracker->AppendOldPolicy(
 							oldPolicy,
-							bestRating
+							skillTracker->LoadRatingSet(bestRating)
 						);
 					} else {
 						RG_LOG(" > FAILED to load policy, policy does not exist in checkpoint!")
@@ -511,8 +518,10 @@ void RLGPC::Learner::Learn() {
 				skillTracker->config.stepCallback = stepCallback;
 
 			skillTracker->RunGames(ppo->policy, timestepsCollected);
-			report["Skill Rating"] = skillTracker->curRating;
-			report["Skill Rating Delta"] = skillTracker->lastRatingDelta;
+			for (auto& pair : skillTracker->curRating.data) {
+				std::string metricName = RS_STR("Skill Rating" << (pair.first.empty() ? "" : " ") << pair.first);
+				report[metricName] = pair.second;
+			}
 		}
 
 		// Get all metrics from agent manager

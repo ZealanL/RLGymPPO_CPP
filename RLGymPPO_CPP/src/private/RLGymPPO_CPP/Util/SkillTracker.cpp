@@ -13,6 +13,14 @@ class DummyReward : public RLGSC::RewardFunction {
 
 static thread_local DummyReward* g_DummyReward = new DummyReward();
 
+std::string ModeNameFromGameInst(RLGPC::GameInst* gameInst) {
+	if (gameInst->match->spawnOpponents) {
+		return RS_STR(gameInst->match->teamSize << "v" << gameInst->match->teamSize);
+	} else {
+		return RS_STR(gameInst->match->teamSize << "v0");
+	}
+}
+
 RLGPC::SkillTracker::SkillTracker(const SkillTrackerConfig& config, RenderSender* renderSender) 
 	: config(config), renderSender(renderSender) {
 
@@ -21,7 +29,10 @@ RLGPC::SkillTracker::SkillTracker(const SkillTrackerConfig& config, RenderSender
 	RG_ASSERT(config.maxVersions > 0);
 	RG_ASSERT(config.simTime > 0);
 
-	curRating = config.initialRating;
+	curRating = {};
+
+	if (!config.perModeRatings)
+		curRating.data[""] = config.initialRating;
 
 	for (int i = 0; i < config.numEnvs; i++) {
 
@@ -35,6 +46,13 @@ RLGPC::SkillTracker::SkillTracker(const SkillTrackerConfig& config, RenderSender
 
 		gameInst->match->rewardFn = g_DummyReward;
 		gameInst->Start();
+
+		if (config.perModeRatings) {
+			std::string modeName = ModeNameFromGameInst(gameInst);
+			modeNames.insert(modeName);
+			curRating.data[modeName] = config.initialRating;
+		}
+
 		games.push_back(Game(gameInst, 1));
 	}
 }
@@ -47,14 +65,17 @@ RLGPC::SkillTracker::~SkillTracker() {
 		delete game.gameInst;
 }
 
-void RLGPC::SkillTracker::UpdateRatings(float& winner, float& loser) {
+void RLGPC::SkillTracker::UpdateRatings(RatingSet& winner, RatingSet& loser, std::string mode) {
 	// Simple elo calculation
 
-	float expDelta = (loser - winner) / 400;
+	RG_ASSERT(winner.data.contains(mode));
+	RG_ASSERT(loser.data.contains(mode));
+
+	float expDelta = (loser.data[mode] - winner.data[mode]) / 400;
 	float expected = 1 / (powf(10, expDelta) + 1);
 
-	winner += config.ratingInc * (1 - expected);
-	loser += config.ratingInc * (expected - 1);
+	winner.data[mode] += config.ratingInc * (1 - expected);
+	loser.data[mode] += config.ratingInc * (expected - 1);
 }
 
 void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsDelta) {
@@ -68,7 +89,7 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 	}
 
 	if (oldPolicies.size() > 0) {
-		float prevRating = curRating;
+		RatingSet prevRating = curRating;
 
 		float timePerGame = config.simTime / games.size();
 
@@ -117,12 +138,15 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 				auto stepResult = gameInst->Step(allActions);
 				if (RLGSC::Math::IsBallScored(stepResult.state.ball.pos)) {
 					auto scoringPolicy = (stepResult.state.ball.pos.y > 0) ? bluePolicy : orangePolicy;
+					std::string modeName = ModeNameFromGameInst(game.gameInst);
+					if (!config.perModeRatings)
+						modeName = "";
 					if (scoringPolicy == curPolicy) {
 						// Current policy scored
-						UpdateRatings(curRating, oldRatings[game.oldPolicyIndex]);
+						UpdateRatings(curRating, oldRatings[game.oldPolicyIndex], modeName);
 					} else {
 						// Old policy scored
-						UpdateRatings(oldRatings[game.oldPolicyIndex], curRating);
+						UpdateRatings(oldRatings[game.oldPolicyIndex], curRating, modeName);
 					}
 				}
 
@@ -137,14 +161,20 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 			}
 		}
 
-		lastRatingDelta = curRating - prevRating;
-		RG_LOG(
-			" > New rating: " << std::setprecision(6) << curRating << 
-			" (" << (lastRatingDelta >= 0 ? "+" : "") << std::setprecision(4) << lastRatingDelta << ")"
-		);
+		RG_LOG("New ratings:");
+		for (auto& pair : curRating.data) {
+			if (prevRating.data.find(pair.first) == prevRating.data.end())
+				continue;
+
+			float prev = prevRating.data[pair.first];
+			float delta = pair.second - prev;
+			RG_LOG(
+				" > " << pair.first << (pair.first.empty() ? "" : " ") << std::setprecision(6) << pair.second << 
+				" (" << (delta >= 0 ? "+" : "") << std::setprecision(4) << delta << ")"
+			);
+		}
 	} else {
 		RG_LOG(" > No old policies yet, skipping");
-		lastRatingDelta = 0;
 	}
 
 	timestepsSinceVersionMade += timestepsDelta;
@@ -167,4 +197,38 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 			oldRatings.erase(oldRatings.begin());
 		}
 	}
+}
+
+RLGPC::SkillTracker::RatingSet RLGPC::SkillTracker::LoadRatingSet(const nlohmann::json& json, bool warn) {
+	constexpr const char* ERR_PREFIX = "RLGPC::SkillTracker::LoadRatingSet(): ";
+
+	RatingSet result = {};
+
+	if (!json.is_number()) {
+		if (config.perModeRatings) {
+			for (auto& modeName : modeNames) {
+				if (!json.contains(modeName)) {
+					RG_LOG(ERR_PREFIX << "Loaded ratings are missing mode \"" << modeName << "\", rating will be set to initial rating.");
+					result.data[modeName] = config.initialRating;
+				}
+			}
+
+			for (auto& pair : json.items())
+				result.data[pair.key()] = pair.value();
+
+		} else {
+			RG_LOG(ERR_PREFIX << "Loaded ratings are per-mode, but per-mode ratings are disabled. Rating will be set to initial rating.");
+			result.data[""] = config.initialRating;
+		}
+	} else {
+		if (config.perModeRatings) {
+			RG_LOG(ERR_PREFIX << "Loaded ratings are not per-mode, all mode ratings will be set to the loaded rating: " << (float)json);
+			for (auto& modeName : modeNames)
+				result.data[modeName] = (float)json;
+		} else {
+			result.data[""] = json;
+		}
+	}
+
+	return result;
 }
