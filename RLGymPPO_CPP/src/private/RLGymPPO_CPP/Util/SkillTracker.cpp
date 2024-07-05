@@ -69,7 +69,7 @@ RLGPC::SkillTracker::~SkillTracker() {
 		delete game.gameInst;
 }
 
-void RLGPC::SkillTracker::UpdateRatings(RatingSet& winner, RatingSet& loser, std::string mode) {
+void RLGPC::SkillTracker::UpdateRatings(RatingSet& winner, RatingSet& loser, bool updateWinner, bool updateLoser, std::string mode) {
 	// Simple elo calculation
 
 	RG_ASSERT(winner.data.contains(mode));
@@ -78,8 +78,10 @@ void RLGPC::SkillTracker::UpdateRatings(RatingSet& winner, RatingSet& loser, std
 	float expDelta = (loser.data[mode] - winner.data[mode]) / 400;
 	float expected = 1 / (powf(10, expDelta) + 1);
 
-	winner.data[mode] += config.ratingInc * (1 - expected);
-	loser.data[mode] += config.ratingInc * (expected - 1);
+	if (updateWinner)
+		winner.data[mode] += config.ratingInc * (1 - expected);
+	if (updateLoser)
+		loser.data[mode] += config.ratingInc * (expected - 1);
 }
 
 void RunThread(
@@ -138,10 +140,10 @@ void RunThread(
 				ratingMutex->lock();
 				if (scoringPolicy == curPolicy) {
 					// Current policy scored
-					self->UpdateRatings(self->curRating, self->oldRatings[game.oldPolicyIndex], modeName);
+					self->UpdateRatings(self->curRating, self->oldRatings[game.oldPolicyIndex], true, false, modeName);
 				} else {
 					// Old policy scored
-					self->UpdateRatings(self->oldRatings[game.oldPolicyIndex], self->curRating, modeName);
+					self->UpdateRatings(self->oldRatings[game.oldPolicyIndex], self->curRating, false, true, modeName);
 				}
 				ratingMutex->unlock();
 			}

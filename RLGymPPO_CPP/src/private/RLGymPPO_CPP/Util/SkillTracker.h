@@ -53,7 +53,7 @@ namespace RLGPC {
 
 		void RunGames(DiscretePolicy* curPolicy, int64_t timestepsDelta);
 
-		void UpdateRatings(RatingSet& winner, RatingSet& loser, std::string mode);
+		void UpdateRatings(RatingSet& winner, RatingSet& loser, bool updateWinner, bool updateLoser, std::string mode);
 
 		void AppendOldPolicy(DiscretePolicy* policy, RatingSet rating) {
 			oldPolicies.push_back(policy);
