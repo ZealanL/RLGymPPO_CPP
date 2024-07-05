@@ -159,6 +159,7 @@ namespace RLConst {
 			MAX_TURN_PITCH = 7000 * M_PI / (1 << 15), // Maximum pitch angle of turning
 			MAX_SPEED = 4600, // Maximum speed the ball can seek at (different from BALL_MAX_SPEED)
 			WALL_BOUNCE_CHANGE_Y_THRESH = 300, // Threshold of wall collision Y backwall distance to change goal targets
+			WALL_BOUNCE_CHANGE_Y_NORMAL = 0.5f, // Threshold of Y normal to trigger bounce-back
 			WALL_BOUNCE_FORCE_SCALE = 1 / 3.f, // Scale of the extra wall bounce impulse (TODO: ???)
 			WALL_BOUNCE_UP_FRAC = 0.3f; // Fraction of upward bounce impulse that goes straight up
 
