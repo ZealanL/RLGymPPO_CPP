@@ -1,4 +1,11 @@
-import wandb
+import site
+try:
+	import wandb
+except:
+	raise Exception("""
+		FAILED to import wandb! Make sure RLGymPPO_CPP isn't using the wrong Python installation.
+		This installation's site packages:", site.getsitepackages()
+	""")
 import sys
 import json
 
