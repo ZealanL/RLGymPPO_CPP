@@ -60,6 +60,17 @@ namespace RLGSC {
 			assert(index < ELEM_AMOUNT);
 			return begin()[index];
 		}
+
+		friend std::ostream& operator<<(std::ostream& stream, const Action& action) {
+			stream << "[";
+			for (int i = 0; i < Action::ELEM_AMOUNT; i++) {
+				if (i != 0)
+					stream << ", ";
+				stream << action[i];
+			}
+			stream << "]";
+			return stream;
+		}
 	};
 
 	typedef std::vector<Action> ActionSet;
