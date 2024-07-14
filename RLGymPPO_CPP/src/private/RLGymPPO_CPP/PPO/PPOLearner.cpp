@@ -68,7 +68,19 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	
 	bool autocast = config.autocastLearn;
 
-	static amp::GradScaler gradScaler = amp::GradScaler();
+	if (autocast) {
+#ifndef RG_CUDA_SUPPORT
+		RG_ERR_CLOSE("Autocast not supported on non-CUDA!")
+#endif
+	}
+
+	static amp::GradScaler* gradScaler = NULL;
+#ifdef RG_CUDA_SUPPORT
+	if (autocast && !gradScaler) {
+		RG_LOG("Creating grad scaler...");
+		gradScaler = new amp::GradScaler();
+	}
+#endif
 
 	int
 		numIterations = 0,
@@ -168,8 +180,8 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				//	From my testing, they are around 61% of learn time
 				//	Results will probably vary heavily depending on model size and GPU strength
 				if (autocast) {
-					gradScaler.scale(ppoLoss).backward();
-					gradScaler.scale(valueLoss).backward();
+					gradScaler->scale(ppoLoss).backward();
+					gradScaler->scale(valueLoss).backward();
 				} else {
 					ppoLoss.backward();
 					valueLoss.backward();
@@ -191,8 +203,8 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			nn::utils::clip_grad_norm_(policy->parameters(), 0.5f);
 
 			if (autocast) {
-				gradScaler.step(*policyOptimizer);
-				gradScaler.step(*valueOptimizer);
+				gradScaler->step(*policyOptimizer);
+				gradScaler->step(*valueOptimizer);
 			} else {
 				policyOptimizer->step();
 				valueOptimizer->step();
@@ -204,7 +216,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				_CopyModelParamsHalf(valueNet, valueNetHalf);
 			
 			if (autocast)
-				gradScaler.update();
+				gradScaler->update();
 			numIterations += 1;
 		}
 	}
