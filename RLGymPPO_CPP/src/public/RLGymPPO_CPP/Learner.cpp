@@ -10,7 +10,9 @@
 #include "../libsrc/json/nlohmann/json.hpp"
 #include <pybind11/embed.h>
 
+#ifdef RG_CUDA_SUPPORT
 #include <c10/cuda/CUDACachingAllocator.h>
+#endif
 
 RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	envCreateFn(envCreateFn),
@@ -502,8 +504,10 @@ void RLGPC::Learner::Learn() {
 		}
 
 		// Free CUDA cache
+#ifdef RG_CUDA_SUPPORT
 		if (ppo->device.is_cuda())
 			c10::cuda::CUDACachingAllocator::emptyCache();
+#endif
 
 		double ppoLearnTime = ppoLearnTimer.Elapsed();
 		double relEpochTime = epochTimer.Elapsed();
@@ -611,8 +615,10 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj, Report& report) 
 	FList valPreds = TENSOR_TO_FLIST(valPredsTensor);
 
 	// Free CUDA cache
+#ifdef RG_CUDA_SUPPORT
 	if (ppo->device.is_cuda())
 		c10::cuda::CUDACachingAllocator::emptyCache();
+#endif
 	
 	float retStd = (config.standardizeReturns ? returnStats.GetSTD()[0] : 1);
 
