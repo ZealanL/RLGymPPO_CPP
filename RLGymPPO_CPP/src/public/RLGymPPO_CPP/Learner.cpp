@@ -18,9 +18,6 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	envCreateFn(envCreateFn),
 	config(_config)
 {
-	torch::set_num_interop_threads(1);
-	torch::set_num_threads(1);
-
 	pybind11::initialize_interpreter();
 
 #ifndef NDEBUG
@@ -91,6 +88,14 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 		device = at::Device(at::kCPU);
 	}
 
+	if (device.is_cpu()) {
+		torch::set_num_interop_threads(std::thread::hardware_concurrency());
+		torch::set_num_threads(std::thread::hardware_concurrency());
+	} else {
+		torch::set_num_interop_threads(1);
+		torch::set_num_threads(1);
+	}
+
 	if (RocketSim::GetStage() != RocketSimStage::INITIALIZED) {
 		RG_LOG("\tInitializing RocketSim...");
 		RocketSim::Init("collision_meshes", true);
@@ -117,7 +122,7 @@ RLGPC::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig _config) :
 	RG_LOG("\tCreating agent manager...");
 	agentMgr = new ThreadAgentManager(
 		ppo->policy, ppo->policyHalf, expBuffer, 
-		config.standardizeOBS, config.deterministic,
+		config.standardizeOBS, config.deterministic, device.is_cpu(),
 		(uint64_t)(config.timestepsPerIteration * 1.5f),
 		device
 	);

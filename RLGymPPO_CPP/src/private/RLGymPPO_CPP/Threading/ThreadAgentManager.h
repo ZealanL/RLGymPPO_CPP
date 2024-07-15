@@ -13,8 +13,10 @@ namespace RLGPC {
 		std::vector<ThreadAgent*> agents;
 		ExperienceBuffer* expBuffer;
 		std::mutex expBufferMutex = {};
+		std::mutex inferMutex = {};
 		bool standardizeOBS;
 		bool deterministic;
+		bool blockConcurrentInfer;
 		uint64_t maxCollect;
 		torch::Device device;
 
@@ -30,9 +32,10 @@ namespace RLGPC {
 
 		ThreadAgentManager(
 			DiscretePolicy* policy, DiscretePolicy* policyHalf, ExperienceBuffer* expBuffer, 
-			bool standardizeOBS, bool deterministic, uint64_t maxCollect, torch::Device device) : 
+			bool standardizeOBS, bool deterministic, bool blockConcurrentInfer, uint64_t maxCollect, torch::Device device) :
 			policy(policy), policyHalf(policyHalf), expBuffer(expBuffer), 
-			standardizeOBS(standardizeOBS), deterministic(deterministic), maxCollect(maxCollect), device(device) {}
+			standardizeOBS(standardizeOBS), deterministic(deterministic), blockConcurrentInfer(blockConcurrentInfer), 
+			maxCollect(maxCollect), device(device) {}
 
 		RG_NO_COPY(ThreadAgentManager);
 

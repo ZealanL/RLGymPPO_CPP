@@ -37,6 +37,7 @@ void _RunFunc(ThreadAgent* ta) {
 			render = false;
 	}
 	bool deterministic = mgr->deterministic;
+	bool blockConcurrentInfer = mgr->blockConcurrentInfer;
 
 	Timer stepTimer = {};
 
@@ -79,7 +80,11 @@ void _RunFunc(ThreadAgent* ta) {
 		// Infer the policy to get actions for all our agents in all our games
 		Timer policyInferTimer = {};
 		
+		if (blockConcurrentInfer)
+			mgr->inferMutex.lock();
 		auto actionResults = policy->GetAction(curObsTensorDevice, deterministic);
+		if (blockConcurrentInfer)
+			mgr->inferMutex.unlock();
 		if (halfPrec) {
 			actionResults.action = actionResults.action.to(torch::ScalarType::Float);
 			actionResults.logProb = actionResults.logProb.to(torch::ScalarType::Float);
