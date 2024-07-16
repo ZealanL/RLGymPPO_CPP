@@ -164,7 +164,7 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				auto policyLoss = -min(
 					ratio * advantages, clipped * advantages
 				).mean();
-				auto valueLoss = valueLossFn(vals, targetValues);
+				auto valueLoss = valueLossFn(vals, targetValues) * batchSizeRatio;
 				auto ppoLoss = (policyLoss - entropy * config.entCoef) * batchSizeRatio;
 
 				if (autocast) RG_AUTOCAST_OFF();
