@@ -210,7 +210,7 @@ void RLGPC::SkillTracker::RunGames(DiscretePolicy* curPolicy, int64_t timestepsD
 				continue;
 
 			while (!threadDones[i])
-				std::this_thread::yield();
+				THREAD_WAIT();
 
 			if (threads[i]->joinable())
 				threads[i]->join();

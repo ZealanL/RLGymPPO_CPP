@@ -27,12 +27,9 @@ RLGPC::GameTrajectory RLGPC::ThreadAgentManager::CollectTimesteps(uint64_t amoun
 
 		// "waiter! waiter! more timesteps please!"
 
-		// TODO: Possibly sub-optimal waiting solution:
-		// This seems ok, but timestep collection only happens every once in a while (timings are very variable to config), 
-		//	so maybe its actually smarter to run sleep(1) or something?
-		// 
+		// TODO: Possibly sub-optimal waiting solution...
 		// Could also just have the agents keep track of total step collection and unlock this thread?
-		std::this_thread::yield();
+		THREAD_WAIT();
 	}
 
 	// Our agents have collected the timesteps we need

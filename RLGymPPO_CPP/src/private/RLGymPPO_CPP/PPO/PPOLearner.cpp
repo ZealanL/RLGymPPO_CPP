@@ -96,8 +96,6 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	auto policyBefore = _CopyParams(policy);
 	auto criticBefore = _CopyParams(valueNet);
 
-	float batchSizeRatio = config.miniBatchSize / (float)config.batchSize;
-
 	Timer totalTimer = {};
 	for (int epoch = 0; epoch < config.epochs; epoch++) {
 
@@ -115,11 +113,15 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			policyOptimizer->zero_grad();
 			valueOptimizer->zero_grad();
 
-			for (int mbs = 0; mbs < config.batchSize; mbs += config.miniBatchSize) {
-				Timer timer = {};
+			// https://stackoverflow.com/questions/30297465/wait-for-all-threads-in-c
+			std::mutex threadLockMutex;
+			std::mutex threadUpdateMutex;
+			std::condition_variable threadCV;
+			std::atomic<int> threadCounter = 0;
 
-				int start = mbs;
-				int stop = start + config.miniBatchSize;
+			auto fnRunMinibatch = [&](int start, int stop) {
+
+				float batchSizeRatio = (stop - start) / (float)config.batchSize;
 
 				// Send everything to the device and enforce correct shapes
 				auto acts = batchActs.slice(0, start, stop).to(device, true);
@@ -129,24 +131,30 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				auto oldProbs = batchOldProbs.slice(0, start, stop).to(device, true);
 				auto targetValues = batchTargetValues.slice(0, start, stop).to(device, true);
 
-				timer.Reset();
+				Timer timer = {};
 				if (autocast) RG_AUTOCAST_ON();
-				auto vals = valueNet->Forward(obs);
+				auto vals = valueNet->Forward(obs); // 11%
+				threadUpdateMutex.lock();
 				report.Accum("PPO Value Estimate Time", timer.Elapsed());
+				threadUpdateMutex.unlock();
 
 				timer.Reset();
 				// Get policy log probs & entropy
-				DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts);
+				DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts); // 13%
 
 				auto logProbs = bpResult.actionLogProbs;
 				auto entropy = bpResult.entropy;
 
 				logProbs = logProbs.view_as(oldProbs);
+				threadUpdateMutex.lock();
 				report.Accum("PPO Backprop Data Time", timer.Elapsed());
+				threadUpdateMutex.unlock();
 
 				// Compute PPO loss
 				auto ratio = exp(logProbs - oldProbs);
+				threadUpdateMutex.lock();
 				meanRatio += ratio.mean().detach().cpu().item<float>();
+				threadUpdateMutex.unlock();
 				auto clipped = clamp(
 					ratio, 1 - config.clipRange, 1 + config.clipRange
 				);
@@ -172,10 +180,12 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 					kl = klTensor.mean().detach().cpu().item<float>();
 
 					clipFraction = mean((abs(ratio - 1) > config.clipRange).to(kFloat)).cpu().item<float>();
+					threadUpdateMutex.lock();
 					clipFractions.push_back(clipFraction);
+					threadUpdateMutex.unlock();
 				}
 
-				timer.Reset();
+				//timer.Reset();
 				// NOTE: These gradient calls are a substantial portion of learn time
 				//	From my testing, they are around 61% of learn time
 				//	Results will probably vary heavily depending on model size and GPU strength
@@ -183,15 +193,56 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 					gradScaler->scale(ppoLoss).backward();
 					gradScaler->scale(valueLoss).backward();
 				} else {
-					ppoLoss.backward();
-					valueLoss.backward();
+					ppoLoss.backward(); // 29%
+					valueLoss.backward(); // 24%
 				}
-				report.Accum("PPO Gradient Time", timer.Elapsed());
 
-				meanValLoss += valueLoss.cpu().detach().item<float>();
-				meanDivergence += kl;
-				meanEntropy += entropy.cpu().detach().item<float>();
-				numMinibatchIterations += 1;
+				threadUpdateMutex.lock();
+				{
+					report.Accum("PPO Gradient Time", timer.Elapsed());
+
+					meanValLoss += valueLoss.cpu().detach().item<float>();
+					meanDivergence += kl;
+					meanEntropy += entropy.cpu().detach().item<float>();
+					numMinibatchIterations += 1;
+				}
+				threadUpdateMutex.unlock();
+
+				std::lock_guard<std::mutex> lk(threadLockMutex);
+				threadCounter--;
+				threadCV.notify_all();
+			};
+
+			if (this->device.is_cpu()) {
+				// Use multithreaded PPO learn
+				int realMinibatchSize = config.batchSize / std::thread::hardware_concurrency();
+
+				std::vector<std::thread*> threads = {};
+				for (int mbs = 0; mbs < config.batchSize; mbs += realMinibatchSize) {
+					int start = mbs;
+					int stop = start + realMinibatchSize;
+					stop = RS_MIN(stop, config.batchSize);
+
+					threadCounter++;
+					threads.push_back(new std::thread(fnRunMinibatch, start, stop));
+					threads.back()->detach();
+				}
+
+				std::unique_lock<std::mutex> lock(threadLockMutex);
+				threadCV.wait(lock, [&]() { return threadCounter == 0; });
+
+				for (std::thread* thread : threads) {
+					if (thread->joinable())
+						thread->join();
+					delete thread;
+				}
+				threads.clear();
+			} else {
+				for (int mbs = 0; mbs < config.batchSize; mbs += config.miniBatchSize) {
+					int start = mbs;
+					int stop = start + config.miniBatchSize;
+					fnRunMinibatch(start, stop);
+				}
 			}
 
 			if (config.measureGradientNoise) {

@@ -20,3 +20,5 @@
 #endif
 
 #define RG_SLEEP(ms) std::this_thread::sleep_for(std::chrono::milliseconds(ms))
+
+#define THREAD_WAIT() RG_SLEEP(2)

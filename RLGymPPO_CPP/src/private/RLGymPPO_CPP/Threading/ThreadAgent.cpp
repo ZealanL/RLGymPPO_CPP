@@ -38,7 +38,6 @@ void _RunFunc(ThreadAgent* ta) {
 	}
 	bool deterministic = mgr->deterministic;
 	bool blockConcurrentInfer = mgr->blockConcurrentInfer;
-
 	Timer stepTimer = {};
 
 	// Start games
@@ -63,10 +62,10 @@ void _RunFunc(ThreadAgent* ta) {
 
 		// Don't run if we reached our step limit
 		while (ta->stepsCollected > ta->maxCollect)
-			std::this_thread::yield();
+			THREAD_WAIT();
 
 		while (mgr->disableCollection)
-			std::this_thread::yield();
+			THREAD_WAIT();
 
 		// Move our current OBS tensor to the device we run the policy on
 		// This conversion time is not counted as a part of policy inference time
