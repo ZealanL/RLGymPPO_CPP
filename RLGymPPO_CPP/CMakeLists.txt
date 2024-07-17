@@ -27,7 +27,7 @@ target_include_directories(RLGymPPO_CPP PRIVATE "src/private")
 # Include libtorch
 target_link_libraries(RLGymPPO_CPP PRIVATE "${TORCH_LIBRARIES}")
 
-if (DEFINED {TORCH_CUDA_LIBRARIES})
+if (TORCH_CUDA_LIBRARIES)
 	message("Enabling CUDA support...")
 	target_compile_definitions(RLGymPPO_CPP PRIVATE -DRG_CUDA_SUPPORT)
 endif()
