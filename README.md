@@ -1,9 +1,6 @@
 # RLGymPPO_CPP
 A lightning-fast C++ implementation of [RLGym-PPO](https://github.com/AechPro/rlgym-ppo)
 
-## WORK IN PROGRESS 
-This library is still a work in progress and is missing some features that RLGym-PPO has.
-
 ## Speed
 Results will vary depending on hardware, but it **should be substantially faster for everyone**.
 
