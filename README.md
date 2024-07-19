@@ -1,16 +1,33 @@
 # RLGymPPO_CPP
-A lightning-fast C++ implementation of [RLGym-PPO](https://github.com/AechPro/rlgym-ppo)
+A lightning-fast C++ implementation and extension of [RLGym-PPO](https://github.com/AechPro/rlgym-ppo), as well as rlgym-sim
 
 ## Speed
 Results will vary depending on hardware, but it **should be substantially faster for everyone**.
 
-On my computer (Intel i5-11400 and GTX 3060 Ti), this repo is about 3x faster than Python RLGym-PPO.
+On my computer (Intel i5-11400 and GTX 3060 Ti), this repo is about 5x faster than Python RLGym-PPO on default settings.
+Collection has the most substantial benefit, and I can reach upwards of 70ksps on my computer in C++, vs 10k in Python.
+
+## Features
+This implementation adds several features that RLGym-PPO/rlgym-sim doesn't have (mostly because it does not fit in Aech's scope for RLGym-PPO):
+- Different multithreaded collection model that doesn't require constant cross-thread communication
+- Can run far more environments (hundreds to thousands) simultaneously using far less memory per environment
+- Actual multithreading used instead of separate processes and shared memory
+- Fully-configurable skill tracking system using ELO
+- Full RocketSim CarState/BallState access in GameState (e.g. `player.carState.isFlipping`)
+- RocketSim Arena access in GameState
+- Built-in zero-sum rewards with adjustable opponent scale
+- Built-in padded obs builder with slot shuffling
+- Support for more advanced state setters via RocketSim Arena access
+- Added possibility for rewards to override their behavior across all players
+- Support for collection during learn
+- Support for auto-casted learn
+- Better multithreading of learn for CPU-only
+- Built-in gradient noise measurement system
+- Added callbacks for steps and iterations
+- Uses RocketSim `Vec` class with various quality-of-life functions like `.Length()`, `.Dist()`, etc.
 
 ## Accuracy to Python RLGym-PPO
-According to a few different learning tests, RLGymPPO_CPP and RLGym-PPO have no differences in learning.
-
-Most of these tests involved training on simple and complex rewards for up to 10m steps,
-and more tests should probably be ran for much longer training sessions to confirm.
+According to several different learning tests, RLGymPPO_CPP and RLGym-PPO have no differences in learning.
 
 ## Installation
 - Clone this repository recursively: `git clone https://github.com/ZealanL/RLGymPPO_CPP --recurse`
@@ -20,7 +37,8 @@ and more tests should probably be ran for much longer training sessions to confi
 - Open the main `RLGymPPO_CPP` folder as a CMake project (if you're on Windows, I recommend Visual Studio with the C++ Desktop package)
 - Change the build type to `RelWithDebInfo` (`Debug` build type is very slow and not really supported) (don't worry you can still debug it)
 - Make sure you have a global Python installation with `wandb` installed (unless you have turned off metrics)
-- Build it!
+- Build it
+- Add your `collision_meshes` folder to wherever the executable is running
 
 ## Transferring models between C++ and Python
 You can do this using the script `tools/checkpoint_converter.py`
@@ -29,8 +47,5 @@ I've confirmed that this script works perfectly, however you will need to make s
 
 ## Dependencies 
  - LibTorch (ideally with CUDA support)
-    - Download from https://pytorch.org/get-started/locally/ by selecting "C++/Java" as your language
-    - Place the 'libtorch' folder within the 'RLGymPPO_CPP' folder
-    - Pray
  - https://github.com/ZealanL/RLGymSim_CPP (already included)
  - https://github.com/nlohmann/json (already included)
