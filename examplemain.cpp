@@ -57,7 +57,7 @@ void OnIteration(Learner* learner, Report& allMetrics) {
 // Create the RLGymSim environment for each of our games
 EnvCreateResult EnvCreateFunc() {
 	constexpr int TICK_SKIP = 8;
-	constexpr float NO_TOUCH_TIMEOUT_SECS = 3.f;
+	constexpr float NO_TOUCH_TIMEOUT_SECS = 10.f;
 
 	auto rewards = new CombinedReward( // Format is { RewardFunc(), weight }
 		{ 
@@ -126,9 +126,9 @@ int main() {
 	// Reasonable starting entropy
 	cfg.ppo.entCoef = 0.01f;
 
-	// Decently-strong learning rate to start, may start to be too high around 100m steps
-	cfg.ppo.policyLR = 8e-4;
-	cfg.ppo.criticLR = 8e-4;
+	// Good learning rate to start, may start to be too high around 100m steps
+	cfg.ppo.policyLR = 2e-4;
+	cfg.ppo.criticLR = 2e-4;
 
 	// Default model size
 	cfg.ppo.policyLayerSizes = { 256, 256, 256 };
