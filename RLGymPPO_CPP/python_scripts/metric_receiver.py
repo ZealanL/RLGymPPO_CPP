@@ -1,13 +1,7 @@
 import site
-try:
-	import wandb
-except:
-	raise Exception("""
-		FAILED to import wandb! Make sure RLGymPPO_CPP isn't using the wrong Python installation.
-		This installation's site packages:", site.getsitepackages()
-	""")
 import sys
 import json
+import os
 
 wandb_run = None
 
@@ -21,6 +15,19 @@ def init(py_exec_path, project, group, name, id = None):
 	# Very strange fix for a very strange problem
 	sys.executable = py_exec_path
 	
+	try:
+		site_packages_dir = os.path.join(os.path.join(os.path.dirname(py_exec_path), "Lib"), "site-packages")
+		sys.path.append(site_packages_dir)
+		site.addsitedir(site_packages_dir)
+		import wandb
+	except Exception as e:
+		raise Exception(f"""
+			FAILED to import wandb! Make sure RLGymPPO_CPP isn't using the wrong Python installation.
+			This installation's site packages: {site.getsitepackages()}
+			Exception: {repr(e)}"""
+		)
+	
+	print("Calling wandb.init()...")
 	if not (id is None) and len(id) > 0:
 		wandb_run = wandb.init(project = project, group = group, name = name, id = id, resume = "allow")
 	else:
