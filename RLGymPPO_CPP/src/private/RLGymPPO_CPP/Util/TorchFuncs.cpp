@@ -5,7 +5,7 @@
 void RLGPC::TorchFuncs::ComputeGAE(
 	const FList& rews, const FList& dones, const FList& truncated, const FList& values, 
 	torch::Tensor& outAdvantages, torch::Tensor& outValues, FList& outReturns, 
-	float gamma, float lambda, float returnStd
+	float gamma, float lambda, float returnStd, float clipRange
 ) {
 	auto next_values = FList(values.begin() + 1, values.end());
 	auto& terminal = dones;
@@ -26,7 +26,9 @@ void RLGPC::TorchFuncs::ComputeGAE(
 
 		float norm_rew;
 		if (returnStd != 0) {
-			norm_rew = RS_CLAMP(rews[step] * returnScale, -10, 10);
+			norm_rew = rews[step] * returnScale;
+			if (clipRange > 0)
+				norm_rew = RS_CLAMP(norm_rew, -clipRange, clipRange);
 		} else {
 			norm_rew = rews[step];
 		}

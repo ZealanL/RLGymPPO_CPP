@@ -49,6 +49,7 @@ namespace RLGPC {
 
 		float gaeLambda = 0.95f;
 		float gaeGamma = 0.99f;
+		float rewardClipRange = 10; // Clip range for normalized rewards, set 0 to disable
 
 		// Set to a directory with numbered subfolders, the learner will load the subfolder with the highest number
 		// If the folder is empty or does not exist, loading is skipped

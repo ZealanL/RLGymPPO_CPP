@@ -635,7 +635,8 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj, Report& report) 
 		returns,
 		config.gaeGamma,
 		config.gaeLambda,
-		retStd
+		retStd,
+		config.rewardClipRange
 	);
 
 	float avgRet = 0;
