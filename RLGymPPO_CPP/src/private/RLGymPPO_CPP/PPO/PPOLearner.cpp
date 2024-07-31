@@ -347,6 +347,9 @@ void TorchLoadSaveSeq(torch::nn::Sequential seq, std::filesystem::path path, c10
 		auto streamIn = std::ifstream(path, std::ios::binary);
 		streamIn >> std::noskipws;
 
+		if (!streamIn.good())
+			RG_ERR_CLOSE("Failed to load from " << path << ", file does not exist or can't be accessed");
+
 		auto sizesBefore = GetSeqSizes(seq);
 
 		try {
