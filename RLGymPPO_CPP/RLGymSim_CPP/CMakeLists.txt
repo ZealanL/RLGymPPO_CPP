@@ -12,5 +12,5 @@ set_target_properties(RLGymSim_CPP PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(RLGymSim_CPP PROPERTIES CXX_STANDARD 20)
 
 # Include RocketSim
-add_subdirectory("${PROJECT_SOURCE_DIR}/RocketSim")
+add_subdirectory("RocketSim")
 target_link_libraries(RLGymSim_CPP RocketSim)

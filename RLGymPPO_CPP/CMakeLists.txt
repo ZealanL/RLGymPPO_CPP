@@ -5,7 +5,7 @@ project("RLGymPPO_CPP")
 include_directories("${PROJECT_SOURCE_DIR}/src/")
 
 # Make sure CMake finds libtorch if its in this directory
-if (EXISTS "${PROJECT_SOURCE_DIR}/libtorch/")
+if (EXISTS "/libtorch/")
 	message("Using local libtorch folder...")
 	list(APPEND CMAKE_PREFIX_PATH "libtorch")
 	# Make ultra-sure we can find libtorch if its local
@@ -72,8 +72,8 @@ if (MSVC)
 endif (MSVC)
 
 # Make our python files copy over to our build dir
-configure_file("./python_scripts/metric_receiver.py" "./python_scripts/metric_receiver.py" COPY)
-configure_file("./python_scripts/render_receiver.py" "./python_scripts/render_receiver.py" COPY)
+configure_file("./python_scripts/metric_receiver.py" "../python_scripts/metric_receiver.py" COPY)
+configure_file("./python_scripts/render_receiver.py" "../python_scripts/render_receiver.py" COPY)
 
 # MSVC sometimes won't link to the libtorch DLLs unless you do this
 # This is also from https://pytorch.org/cppdocs/installing.html#minimal-example
