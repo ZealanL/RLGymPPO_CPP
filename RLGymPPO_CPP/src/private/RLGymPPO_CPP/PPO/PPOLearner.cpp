@@ -96,6 +96,9 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 	auto policyBefore = _CopyParams(policy);
 	auto criticBefore = _CopyParams(valueNet);
 
+	bool trainPolicy = config.policyLR != 0;
+	bool trainCritic = config.criticLR != 0;
+
 	Timer totalTimer = {};
 	for (int epoch = 0; epoch < config.epochs; epoch++) {
 
@@ -139,50 +142,60 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				threadUpdateMutex.unlock();
 
 				timer.Reset();
-				// Get policy log probs & entropy
-				DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts); // 13%
+				torch::Tensor logProbs, entropy, ratio, clipped, policyLoss, ppoLoss;
+				if (trainPolicy) {
+					// Get policy log probs & entropy
+					DiscretePolicy::BackpropResult bpResult = policy->GetBackpropData(obs, acts); // 13%
 
-				auto logProbs = bpResult.actionLogProbs;
-				auto entropy = bpResult.entropy;
+					logProbs = bpResult.actionLogProbs;
+					entropy = bpResult.entropy;
 
-				logProbs = logProbs.view_as(oldProbs);
-				threadUpdateMutex.lock();
-				report.Accum("PPO Backprop Data Time", timer.Elapsed());
-				threadUpdateMutex.unlock();
+					logProbs = logProbs.view_as(oldProbs);
+					threadUpdateMutex.lock();
+					report.Accum("PPO Backprop Data Time", timer.Elapsed());
+					threadUpdateMutex.unlock();
 
-				// Compute PPO loss
-				auto ratio = exp(logProbs - oldProbs);
-				threadUpdateMutex.lock();
-				meanRatio += ratio.mean().detach().cpu().item<float>();
-				threadUpdateMutex.unlock();
-				auto clipped = clamp(
-					ratio, 1 - config.clipRange, 1 + config.clipRange
-				);
-				vals = vals.view_as(targetValues);
+					// Compute PPO loss
+					ratio = exp(logProbs - oldProbs);
+					threadUpdateMutex.lock();
+					meanRatio += ratio.mean().detach().cpu().item<float>();
+					threadUpdateMutex.unlock();
+					clipped = clamp(
+						ratio, 1 - config.clipRange, 1 + config.clipRange
+					);
 
-				// Compute policy loss
-				auto policyLoss = -min(
-					ratio * advantages, clipped * advantages
-				).mean();
-				auto valueLoss = valueLossFn(vals, targetValues) * batchSizeRatio;
-				auto ppoLoss = (policyLoss - entropy * config.entCoef) * batchSizeRatio;
+					// Compute policy loss
+					policyLoss = -min(
+						ratio * advantages, clipped * advantages
+					).mean();
+					ppoLoss = (policyLoss - entropy * config.entCoef) * batchSizeRatio;
+				}
+
+				torch::Tensor valueLoss;
+				if (trainCritic) {
+					// Compute value loss
+					vals = vals.view_as(targetValues);
+					valueLoss = valueLossFn(vals, targetValues) * batchSizeRatio;
+				}
 
 				if (autocast) RG_AUTOCAST_OFF();
 
-				// Compute KL divergence & clip fraction using SB3 method for reporting
 				float kl;
-				float clipFraction;
-				{
-					RG_NOGRAD;
+				if (trainPolicy) {
+					// Compute KL divergence & clip fraction using SB3 method for reporting
+					float clipFraction;
+					{
+						RG_NOGRAD;
 
-					auto logRatio = logProbs - oldProbs;
-					auto klTensor = (exp(logRatio) - 1) - logRatio;
-					kl = klTensor.mean().detach().cpu().item<float>();
+						auto logRatio = logProbs - oldProbs;
+						auto klTensor = (exp(logRatio) - 1) - logRatio;
+						kl = klTensor.mean().detach().cpu().item<float>();
 
-					clipFraction = mean((abs(ratio - 1) > config.clipRange).to(kFloat)).cpu().item<float>();
-					threadUpdateMutex.lock();
-					clipFractions.push_back(clipFraction);
-					threadUpdateMutex.unlock();
+						clipFraction = mean((abs(ratio - 1) > config.clipRange).to(kFloat)).cpu().item<float>();
+						threadUpdateMutex.lock();
+						clipFractions.push_back(clipFraction);
+						threadUpdateMutex.unlock();
+					}
 				}
 
 				//timer.Reset();
@@ -190,20 +203,27 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				//	From my testing, they are around 61% of learn time
 				//	Results will probably vary heavily depending on model size and GPU strength
 				if (autocast) {
-					gradScaler->scale(ppoLoss).backward();
-					gradScaler->scale(valueLoss).backward();
+					if (trainPolicy)
+						gradScaler->scale(ppoLoss).backward();
+					if (trainCritic)
+						gradScaler->scale(valueLoss).backward();
 				} else {
-					ppoLoss.backward(); // 29%
-					valueLoss.backward(); // 24%
+					if (trainPolicy)
+						ppoLoss.backward(); // 29%
+					if (trainCritic)
+						valueLoss.backward(); // 24%
 				}
 
 				threadUpdateMutex.lock();
 				{
 					report.Accum("PPO Gradient Time", timer.Elapsed());
 
-					meanValLoss += valueLoss.cpu().detach().item<float>();
-					meanDivergence += kl;
-					meanEntropy += entropy.cpu().detach().item<float>();
+					if (trainCritic)
+						meanValLoss += valueLoss.cpu().detach().item<float>();
+					if (trainPolicy) {
+						meanDivergence += kl;
+						meanEntropy += entropy.cpu().detach().item<float>();
+					}
 					numMinibatchIterations += 1;
 				}
 				threadUpdateMutex.unlock();
@@ -246,19 +266,28 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			}
 
 			if (config.measureGradientNoise) {
-				noiseTrackerValueNet->Update(valueNet->seq);
-				noiseTrackerPolicy->Update(policy->seq);
+				if (trainPolicy)
+					noiseTrackerPolicy->Update(policy->seq);
+				if (trainCritic)
+					noiseTrackerValueNet->Update(valueNet->seq);
 			}
 
-			nn::utils::clip_grad_norm_(valueNet->parameters(), 0.5f);
-			nn::utils::clip_grad_norm_(policy->parameters(), 0.5f);
+			if (trainPolicy)
+				nn::utils::clip_grad_norm_(policy->parameters(), 0.5f);
+			if (trainCritic)
+				nn::utils::clip_grad_norm_(valueNet->parameters(), 0.5f);
+			
 
 			if (autocast) {
-				gradScaler->step(*policyOptimizer);
-				gradScaler->step(*valueOptimizer);
+				if (trainPolicy)
+					gradScaler->step(*policyOptimizer);
+				if (trainCritic)
+					gradScaler->step(*valueOptimizer);
 			} else {
-				policyOptimizer->step();
-				valueOptimizer->step();
+				if (trainPolicy)
+					policyOptimizer->step();
+				if (trainCritic)
+					valueOptimizer->step();
 			}
 
 			if (policyHalf)

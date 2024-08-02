@@ -461,6 +461,15 @@ void RLGPC::Learner::Learn() {
 
 		totalTimesteps += timestepsCollected;
 
+		if (config.ppo.policyLR == 0 && config.ppo.criticLR == 0) {
+			RG_LOG("\tBoth LRs are set to zero. Skipping consumption!");
+#ifdef RG_CUDA_SUPPORT
+			if (ppo->device.is_cuda())
+				c10::cuda::CUDACachingAllocator::emptyCache();
+#endif
+			continue;
+		}
+
 		if (!config.collectionDuringLearn)
 			agentMgr->disableCollection = true;
 
