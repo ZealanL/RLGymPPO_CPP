@@ -390,13 +390,14 @@ void TorchLoadSaveSeq(torch::nn::Sequential seq, std::filesystem::path path, c10
 void TorchLoadSaveAll(RLGPC::PPOLearner* learner, std::filesystem::path folderPath, bool load) {
 
 	if (load) {
-		for (const char* fileName : MODEL_FILE_NAMES)
-			if (!std::filesystem::exists(folderPath / fileName))
-				RG_ERR_CLOSE("PPOLearner: Failed to find file \"" << fileName << "\" in " << folderPath << ".")
+		if (!std::filesystem::exists(folderPath / MODEL_FILE_NAMES[0]))
+			RG_ERR_CLOSE("PPOLearner: Failed to find file \"" << MODEL_FILE_NAMES[0] << "\" in " << folderPath << ".")
 	}
 
 	TorchLoadSaveSeq(learner->policy->seq, folderPath / MODEL_FILE_NAMES[0], learner->device, load);
-	TorchLoadSaveSeq(learner->valueNet->seq, folderPath / MODEL_FILE_NAMES[1], learner->device, load);
+
+	if (!load || std::filesystem::exists(folderPath / MODEL_FILE_NAMES[1]))
+		TorchLoadSaveSeq(learner->valueNet->seq, folderPath / MODEL_FILE_NAMES[1], learner->device, load);
 
 	if (load) {
 		if (learner->policyHalf)
