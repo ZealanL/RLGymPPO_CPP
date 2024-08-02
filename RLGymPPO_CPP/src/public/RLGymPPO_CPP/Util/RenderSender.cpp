@@ -84,6 +84,7 @@ std::vector<json> ActionSetToJSON(const ActionSet& actions) {
 
 void RLGPC::RenderSender::Send(const GameState& state, const ActionSet& actions) {
 	json j = {};
+	j["gamemode"] = state.lastArena ? GAMEMODE_STRS[(int)state.lastArena->gameMode] : "soccar";
 	j["state"] = GameStateToJSON(state);
 	j["actions"] = ActionSetToJSON(actions);
 	

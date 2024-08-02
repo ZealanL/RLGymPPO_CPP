@@ -15,8 +15,9 @@ UDP_PORT = 9273
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
 
-def send_data_to_rsvis(j):
+def send_data_to_rsvis(j, gamemode):
     json_out = {}
+    json_out["gamemode"] = gamemode
     json_out["ball_phys"] = j['ball']
     json_out["ball_phys"].pop('forward')
     json_out["ball_phys"].pop('right')
@@ -32,7 +33,7 @@ def render_state(state_json_str):
     j = json.loads(state_json_str)
     try:
         if 'state' in j:
-            send_data_to_rsvis(j['state'])
+            send_data_to_rsvis(j['state'], j['gamemode'])
         else:
             send_data_to_rsvis(j)
     except Exception as err:
