@@ -5,7 +5,7 @@ project("RLGymPPO_CPP")
 include_directories("${PROJECT_SOURCE_DIR}/src/")
 
 # Make sure CMake finds libtorch if its in this directory
-if (EXISTS "/libtorch/")
+if (EXISTS "${PROJECT_SOURCE_DIR}/libtorch/")
 	message("Using local libtorch folder...")
 	list(APPEND CMAKE_PREFIX_PATH "libtorch")
 	# Make ultra-sure we can find libtorch if its local
