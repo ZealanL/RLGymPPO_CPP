@@ -21,6 +21,9 @@ namespace RLGPC {
 		// Very experimental, uses half-precision versions of models where beneficial
 		bool halfPrecModels = false;
 
+		// Temperature of the policy's softmax distribution
+		float policyTemperature = 1;
+
 		// https://openai.com/index/how-ai-training-scales/
 		// Measures the noise of both policy and critic gradients every epoch
 		bool measureGradientNoise = false;

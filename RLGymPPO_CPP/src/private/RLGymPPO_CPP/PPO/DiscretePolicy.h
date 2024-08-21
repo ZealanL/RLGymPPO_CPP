@@ -2,6 +2,7 @@
 #include <RLGymPPO_CPP/Lists.h>
 
 #include <torch/nn/modules/container/sequential.h>
+#include <torch/nn/functional.h>
 
 namespace RLGPC {
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/ppo/discrete_policy.py
@@ -12,18 +13,22 @@ namespace RLGPC {
 		int inputAmount;
 		int actionAmount;
 		IList layerSizes;
+		float temperature;
 
 		// Min probability that an action will be taken
 		constexpr static float ACTION_MIN_PROB = 1e-11;
 
-		DiscretePolicy(int inputAmount, int actionAmount, const IList& layerSizes, torch::Device device);
+		DiscretePolicy(int inputAmount, int actionAmount, const IList& layerSizes, torch::Device device, float temperature = 1);
 
 		RG_NO_COPY(DiscretePolicy);
 
 		void CopyTo(DiscretePolicy& to);
 
 		torch::Tensor GetOutput(torch::Tensor input) {
-			return seq->forward(input);
+			return torch::nn::functional::softmax(
+				seq->forward(input) / temperature,
+				torch::nn::functional::SoftmaxFuncOptions(-1)
+			);
 		}
 
 		torch::Tensor GetActionProbs(torch::Tensor obs);

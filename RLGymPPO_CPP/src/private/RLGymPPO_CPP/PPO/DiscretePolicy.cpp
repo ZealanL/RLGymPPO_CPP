@@ -4,8 +4,8 @@
 #include <torch/nn/modules/activation.h>
 #include <private/RLGymPPO_CPP/FrameworkTorch.h>
 
-RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const IList& layerSizes, torch::Device device) :
-	device(device), inputAmount(inputAmount), actionAmount(actionAmount), layerSizes(layerSizes) {
+RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const IList& layerSizes, torch::Device device, float temperature) :
+	device(device), inputAmount(inputAmount), actionAmount(actionAmount), layerSizes(layerSizes), temperature(temperature) {
 	using namespace torch;
 
 	seq = {};
@@ -22,7 +22,6 @@ RLGPC::DiscretePolicy::DiscretePolicy(int inputAmount, int actionAmount, const I
 
 	// Output layer, for each action
 	seq->push_back(nn::Linear(layerSizes.back(), actionAmount));
-	seq->push_back(nn::Softmax(nn::SoftmaxOptions(-1)));
 
 	register_module("seq", seq);
 
