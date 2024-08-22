@@ -10,6 +10,7 @@
 #include <torch/nn/modules/loss.h>
 #include "../Util/gradscaler.hpp"
 #include "../Util/GradNoiseTracker.h"
+#include "../Util/ThreadPool.h"
 
 namespace RLGPC {
 	// https://github.com/AechPro/rlgym-ppo/blob/main/rlgym_ppo/ppo/ppo_learner.py
@@ -24,6 +25,8 @@ namespace RLGPC {
 
 		PPOLearnerConfig config;
 		torch::Device device;
+
+		ThreadPool* minibatchThreadPool = NULL;
 
 		int cumulativeModelUpdates = 0;
 

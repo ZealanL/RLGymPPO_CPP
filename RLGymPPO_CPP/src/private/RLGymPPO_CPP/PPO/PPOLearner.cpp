@@ -234,29 +234,27 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 			};
 
 			if (this->device.is_cpu()) {
-				// Use multithreaded PPO learn
-				int realMinibatchSize = config.batchSize / std::thread::hardware_concurrency();
 
-				std::vector<std::thread*> threads = {};
+				if (!this->minibatchThreadPool) {
+					int numThreads = std::thread::hardware_concurrency();
+					numThreads += numThreads / 2; // Seems to be slightly faster
+					this->minibatchThreadPool = new ThreadPool(numThreads);
+				}
+
+				// Use multithreaded PPO learn
+				int realMinibatchSize = config.batchSize / this->minibatchThreadPool->threads.size();
+
 				for (int mbs = 0; mbs < config.batchSize; mbs += realMinibatchSize) {
 					int start = mbs;
 					int stop = start + realMinibatchSize;
 					stop = RS_MIN(stop, config.batchSize);
 
-					threadCounter++;
-					threads.push_back(new std::thread(fnRunMinibatch, start, stop));
-					threads.back()->detach();
+					this->minibatchThreadPool->StartJob(std::bind(fnRunMinibatch, start, stop));
 				}
 
-				std::unique_lock<std::mutex> lock(threadLockMutex);
-				threadCV.wait(lock, [&]() { return threadCounter == 0; });
+				while (this->minibatchThreadPool->GetNumRunningJobs() > 0)
+					RG_SLEEP(1);
 
-				for (std::thread* thread : threads) {
-					if (thread->joinable())
-						thread->join();
-					delete thread;
-				}
-				threads.clear();
 			} else {
 				for (int mbs = 0; mbs < config.batchSize; mbs += config.miniBatchSize) {
 					int start = mbs;
