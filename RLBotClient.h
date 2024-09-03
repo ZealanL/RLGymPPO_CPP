@@ -4,7 +4,7 @@
 #include <RLGymSim_CPP/Utils/OBSBuilders/OBSBuilder.h>
 #include <RLGymSim_CPP/Utils/ActionParsers/ActionParser.h>
 
-#include <RLGymPPO_CPP/Util/PolicyInferUnit.h>
+#include <RLGymPPO_CPP/Util/InferUnit.h>
 
 struct RLBotParams {
 	// Set this to the same port used in rlbot/port.cfg
@@ -26,7 +26,7 @@ public:
 	RLBotParams params;
 
 	// Inference unit to infer the policy with, also uses our obs and action parser
-	RLGPC::PolicyInferUnit* policyInferUnit;
+	RLGPC::InferUnit* policyInferUnit;
 
 	// Queued action and current action
 	RLGSC::Action 
