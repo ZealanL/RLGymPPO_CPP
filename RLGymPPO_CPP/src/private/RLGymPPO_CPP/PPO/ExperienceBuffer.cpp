@@ -56,14 +56,14 @@ void RLGPC::ExperienceBuffer::SubmitExperience(ExperienceTensors& _data) {
 			if (overflow > 0) {
 				auto fromData = ourTen.slice(0, overflow, curSize).clone();
 				auto toView = ourTen.slice(0, 0, curSize - overflow);
-				toView.copy_(fromData);
+				toView.copy_(fromData, true);
 
 				RG_PARA_ASSERT(ourTen[curSize - overflow - 1].equal(ourTen[curSize - 1]));
 			}
 		}
 
 		auto ourTenInsertView = ourTen.slice(0, startIdx, endIdx);
-		ourTenInsertView.copy_(addTen);
+		ourTenInsertView.copy_(addTen, true);
 		RG_PARA_ASSERT(ourTen[endIdx - 1].equal(addTen[addTen.size(0) - 1]));
 	}
 

@@ -127,12 +127,12 @@ void RLGPC::PPOLearner::Learn(ExperienceBuffer* expBuffer, Report& report) {
 				float batchSizeRatio = (stop - start) / (float)config.batchSize;
 
 				// Send everything to the device and enforce correct shapes
-				auto acts = batchActs.slice(0, start, stop).to(device, true);
-				auto obs = batchObs.slice(0, start, stop).to(device, true);
-
-				auto advantages = batchAdvantages.slice(0, start, stop).to(device, true);
-				auto oldProbs = batchOldProbs.slice(0, start, stop).to(device, true);
-				auto targetValues = batchTargetValues.slice(0, start, stop).to(device, true);
+				auto acts = batchActs.slice(0, start, stop).to(device, true, true);
+				auto obs = batchObs.slice(0, start, stop).to(device, true, true);
+				
+				auto advantages = batchAdvantages.slice(0, start, stop).to(device, true, true);
+				auto oldProbs = batchOldProbs.slice(0, start, stop).to(device, true, true);
+				auto targetValues = batchTargetValues.slice(0, start, stop).to(device, true, true);
 
 				Timer timer = {};
 				if (autocast) RG_AUTOCAST_ON();
