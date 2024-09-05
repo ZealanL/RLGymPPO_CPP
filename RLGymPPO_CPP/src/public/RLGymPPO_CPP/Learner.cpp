@@ -614,13 +614,32 @@ void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj, Report& report) 
 	auto& trajData = gameTraj.data;
 
 	size_t count = trajData.actions.size(0);
-
+	
 	// Construct input to the value function estimator that includes the final state (which an action was not taken in)
+	size_t valPredCount = count + 1;
+
+#if 0 // Does everything in one go, but can use too much VRAM
 	auto valInput = 
 		torch::cat({ trajData.states, torch::unsqueeze(trajData.nextStates[count - 1], 0) })
 		.to(ppo->device, true);
-
 	auto valPredsTensor = ppo->valueNet->Forward(valInput).cpu().flatten();
+#else
+	// Uses minibatching
+	auto valPredsTensor = torch::zeros({ (int64_t)valPredCount });
+	for (int i = 0; i < valPredCount; i += ppo->config.miniBatchSize) {
+		int start = i;
+		int end = RS_MIN(i + ppo->config.miniBatchSize, valPredCount);
+		torch::Tensor statesPart = trajData.states.slice(0, start, RS_MIN(count, end));
+		if (end == valPredCount) {
+			auto finalNextState = torch::unsqueeze(trajData.nextStates[count - 1], 0);
+			statesPart = torch::cat({ statesPart, finalNextState });
+		}
+		auto valPredsPart = ppo->valueNet->Forward(statesPart.to(ppo->device, true, true)).cpu().flatten();
+		RG_ASSERT(valPredsPart.size(0) == (end - start));
+		valPredsTensor.slice(0, start, end).copy_(valPredsPart, true);
+	}
+#endif
+
 	FList valPreds = TENSOR_TO_FLIST(valPredsTensor);
 
 	// Free CUDA cache
