@@ -73,9 +73,7 @@ json GameStateToJSON(const GameState& state) {
 std::vector<json> ActionSetToJSON(const ActionSet& actions) {
 	std::vector<json> js = {};
 	for (auto& action : actions) {
-		FList vals;
-		for (float v : action)
-			vals.push_back(v);
+		FList vals  = FList(action.begin(), action.end());
 		js.push_back(json(vals));
 	}
 

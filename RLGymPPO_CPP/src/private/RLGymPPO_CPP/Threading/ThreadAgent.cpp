@@ -164,7 +164,7 @@ void _RunFunc(ThreadAgent* ta) {
 			// Update renderer
 			auto renderSender = mgr->renderSender;
 			auto renderGame = games[0];
-			renderSender->Send(renderGame->gym->prevState, RLGSC::ActionSet());
+			renderSender->Send(renderGame->gym->prevState, renderGame->gym->match->prevActions);
 
 			// Delay for render
 			// TODO: Somewhat dumb system using static variables
