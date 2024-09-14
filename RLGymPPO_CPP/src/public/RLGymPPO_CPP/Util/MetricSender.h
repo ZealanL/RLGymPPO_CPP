@@ -17,6 +17,8 @@ namespace RLGPC {
 		RG_NO_COPY(MetricSender);
 
 		void Send(const Report& report);
+		void StopRun() const;
+
 		static void OnKillSignal(int sig);
 
 

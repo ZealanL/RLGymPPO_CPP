@@ -49,6 +49,17 @@ void RLGPC::MetricSender::Send(const Report& report) {
 	}
 }
 
+void RLGPC::MetricSender::StopRun() const
+{
+	try {
+		this->onKillMethod(0);
+	}
+	catch (std::exception& e) {
+		RG_ERR_CLOSE("MetricSender: Failed to add metrics, exception: " << e.what());
+	}
+	
+}
+
 void RLGPC::MetricSender::OnKillSignal(const int signal)
 {
 	RG_LOG("Received end signal " << signal << ".");
