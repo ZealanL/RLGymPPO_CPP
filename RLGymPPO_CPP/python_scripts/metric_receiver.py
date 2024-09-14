@@ -1,6 +1,6 @@
+import signal
 import site
 import sys
-import json
 import os
 
 wandb_run = None
@@ -8,6 +8,21 @@ wandb_run = None
 # Takes in the python executable path, the three wandb init strings, and optionally the current run ID
 # Returns the ID of the run (either newly created or resumed)
 def init(py_exec_path, project, group, name, id = None):
+	"""Takes in the python executable path, the three wandb init strings, and optionally the current run ID. Returns the ID of the run (either newly created or resumed)
+
+	Args:
+		py_exec_path (str): Python executable path, necessary to fix a bug where the wrong interpreter is used
+		project (str): Wandb project name
+		group (str): Wandb group name
+		name (str): Wandb run name
+		id (str, optional): Id of the wandb run, if None, a new run is created
+
+	Raises:
+		Exception: Failed to import wandb
+
+	Returns:
+		str: The id of the created or continued run
+	"""
 
 	global wandb_run
 	
@@ -35,5 +50,24 @@ def init(py_exec_path, project, group, name, id = None):
 	return wandb_run.id
 
 def add_metrics(metrics):
+	"""Logs metrics to the wandb run
+
+	Args:
+		metrics (Dict[str, Any]): The metrics to log
+	"""
 	global wandb_run
 	wandb_run.log(metrics)
+
+
+def end(_signal):
+	"""Runs post-mortem tasks
+
+	Args:
+		signal (int): Received signal
+	"""
+	print(f"Received signal {_signal} ({signal.strsignal(_signal)})")
+
+	# SIGBREAK crashes wandb_run.finish on a WinError[10054].
+
+	if _signal != signal.Signals.SIGBREAK.value:
+		wandb_run.finish()
