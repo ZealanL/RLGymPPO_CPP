@@ -603,6 +603,7 @@ void RLGPC::Learner::Learn() {
 	RG_LOG("Learner: Timestep limit of " << config.timestepLimit << " reached, stopping");
 	RG_LOG("\tStopping agents...");
 	agentMgr->StopAgents();
+	if(config.sendMetrics) this->metricSender->StopRun();
 }
 
 void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj, Report& report) {

@@ -65,7 +65,7 @@ def end(_signal):
 	Args:
 		signal (int): Received signal
 	"""
-	print(f"Received signal {_signal} ({signal.strsignal(_signal)}), running post-mortem tasks")
+	print(f"Received signal {_signal}, running post-mortem tasks")
 
 	# SIGBREAK crashes wandb_run.finish on a WinError[10054].
 
