@@ -57,6 +57,11 @@ PlayerData ToPlayer(const rlbot::flat::PlayerInfo* playerInfo) {
 	pd.phys = ToPhysObj(playerInfo->physics());
 	pd.physInv = pd.phys.Invert();
 
+	pd.carState.pos = pd.phys.pos;
+	pd.carState.rotMat = pd.phys.rotMat;
+	pd.carState.vel = pd.phys.vel;
+	pd.carState.angVel = pd.phys.angVel;
+
 	pd.boostFraction = playerInfo->boost() / 100.f;
 	pd.carState.isOnGround = playerInfo->hasWheelContact();
 	pd.carState.hasJumped = playerInfo->jumped();
