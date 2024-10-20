@@ -8,6 +8,7 @@ namespace RLGSC {
 		GameEventTracker eventTracker;
 		Match* match;
 		int tickSkip;
+		int actionDelay;
 		GameState prevState;
 		std::vector<uint32_t> carIds;
 

@@ -38,7 +38,7 @@ namespace RLGSC {
 	}
 
 	Gym::Gym(Match* match, int tickSkip, CarConfig carConfig, GameMode gameMode, MutatorConfig mutatorConfig) :
-		match(match), tickSkip(tickSkip) {
+		match(match), tickSkip(tickSkip), actionDelay(tickSkip - 1) {
 		arena = Arena::Create(gameMode);
 		arena->SetMutatorConfig(mutatorConfig);
 
@@ -78,12 +78,12 @@ namespace RLGSC {
 				carItr++;
 			}
 
-			arena->Step(1);
+			arena->Step(tickSkip - actionDelay);
 			if (arena->gameMode != GameMode::HEATSEEKER)
 				eventTracker.Update(arena);
 			state = prevState; // All callbacks have been hit
 			state.UpdateFromArena(arena);
-			arena->Step(tickSkip - 1);
+			arena->Step(actionDelay);
 			totalTicks += tickSkip;
 			totalSteps++;
 		}
