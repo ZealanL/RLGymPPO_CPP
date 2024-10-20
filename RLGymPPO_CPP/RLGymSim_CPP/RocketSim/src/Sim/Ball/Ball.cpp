@@ -42,6 +42,7 @@ void Ball::SetState(const BallState& state) {
 	_rigidBody.setWorldTransform(newTransform);
 	_rigidBody.setLinearVelocity(state.vel * UU_TO_BT);
 	_rigidBody.setAngularVelocity(state.angVel);
+	_rigidBody.updateInertiaTensor();
 
 	_velocityImpulseCache = { 0,0,0 };
 	_internalState.updateCounter = 0;
@@ -179,11 +180,16 @@ void Ball::_PreTickUpdate(GameMode gameMode, float tickTime) {
 			// Limit pitch
 			newAngle.pitch = RS_CLAMP(newAngle.pitch, -Heatseeker::MAX_TURN_PITCH, Heatseeker::MAX_TURN_PITCH);
 
+			// Apply aggressive UE3 rotator rounding
+			// (This is suprisingly important for accuracy)
+			newAngle = Math::RoundAngleUE3(newAngle);
+			
 			// Determine new interpolated speed
 			float newSpeed = curSpeed + ((state.hsInfo.curTargetSpeed - curSpeed) * Heatseeker::SPEED_BLEND);
 
 			// Update velocity
 			Vec newDir = newAngle.GetForwardVec();
+
 			Vec newVel = newDir * newSpeed;
 			_rigidBody.m_linearVelocity = newVel * UU_TO_BT;
 
