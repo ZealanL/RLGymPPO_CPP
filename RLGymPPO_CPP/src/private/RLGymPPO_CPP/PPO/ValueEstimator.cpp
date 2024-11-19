@@ -26,3 +26,7 @@ RLGPC::ValueEstimator::ValueEstimator(int inputAmount, const IList& layerSizes, 
 
 	this->to(device, true);
 }
+
+torch::Tensor RLGPC::ValueEstimator::Forward(torch::Tensor input) {
+    return seq->forward(input).to(device, true);
+}

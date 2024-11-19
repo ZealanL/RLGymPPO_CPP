@@ -46,9 +46,13 @@ namespace RLGPC {
 
 		void Clear();
 
-		
-
 		// Combine two tensors into one, removing older data if needed to fit target size
 		static torch::Tensor _Concat(torch::Tensor t1, torch::Tensor t2, int64_t size);
+
+		// Optimize data retrieval speed in the experience buffer class
+		SampleSet GetSamplesOptimized(const int64_t* indices, size_t size) const;
+
+		// Handle experience data more efficiently, reducing memory usage
+		void HandleExperienceDataEfficiently(ExperienceTensors& data);
 	};
 }
