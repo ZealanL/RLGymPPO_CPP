@@ -604,6 +604,7 @@ void RLGPC::Learner::Learn() {
 	RG_LOG("Learner: Timestep limit of " << config.timestepLimit << " reached, stopping");
 	RG_LOG("\tStopping agents...");
 	agentMgr->StopAgents();
+	Save(); // Save checkpoint after target timestep limit
 }
 
 void RLGPC::Learner::AddNewExperience(GameTrajectory& gameTraj, Report& report) {
