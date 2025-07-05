@@ -45,6 +45,12 @@ namespace RLGPC {
 		// Note that, once the learning phase completes and the policy is updated, these additional steps are from the old policy
 		bool collectionDuringLearn = false;
 
+		// Policy pool settings for self-play
+		bool enablePolicyPool = false; // Enable self-play with policy pool
+		int policyPoolSize = 5; // Maximum number of old policies to keep in the pool
+		float selfPlayRatio = 0.2f; // Ratio of games against older policies (0.0-1.0)
+		int64_t timestepsPerPoolUpdate = 500 * 1000; // How often to add a new policy to the pool
+
 		PPOLearnerConfig ppo = {};
 
 		float gaeLambda = 0.95f;

@@ -1,6 +1,7 @@
 #pragma once
 #include "ThreadAgent.h"
 #include "../PPO/ExperienceBuffer.h"
+#include "../Util/PolicyPool.h"
 #include <RLGymPPO_CPP/Util/Report.h>
 #include <RLGymPPO_CPP/Util/WelfordRunningStat.h>
 #include <RLGymPPO_CPP/Util/Timer.h>
@@ -12,6 +13,7 @@ namespace RLGPC {
 		DiscretePolicy* policy, *policyHalf;
 		std::vector<ThreadAgent*> agents;
 		ExperienceBuffer* expBuffer;
+		PolicyPool* policyPool;
 		std::mutex expBufferMutex = {};
 		std::mutex inferMutex = {};
 		bool standardizeOBS;
@@ -33,7 +35,7 @@ namespace RLGPC {
 		ThreadAgentManager(
 			DiscretePolicy* policy, DiscretePolicy* policyHalf, ExperienceBuffer* expBuffer, 
 			bool standardizeOBS, bool deterministic, bool blockConcurrentInfer, uint64_t maxCollect, torch::Device device) :
-			policy(policy), policyHalf(policyHalf), expBuffer(expBuffer), 
+			policy(policy), policyHalf(policyHalf), expBuffer(expBuffer), policyPool(nullptr),
 			standardizeOBS(standardizeOBS), deterministic(deterministic), blockConcurrentInfer(blockConcurrentInfer), 
 			maxCollect(maxCollect), device(device) {}
 
@@ -55,6 +57,10 @@ namespace RLGPC {
 			for (ThreadAgent* agent : agents)
 				for (GameInst* game : agent->gameInsts)
 					game->stepCallback = callback;
+		}
+
+		void SetPolicyPool(PolicyPool* pool) {
+			policyPool = pool;
 		}
 
 		void GetMetrics(Report& report);

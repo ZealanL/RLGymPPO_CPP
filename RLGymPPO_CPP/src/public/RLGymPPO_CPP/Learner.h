@@ -18,6 +18,7 @@ namespace RLGPC {
 		class PPOLearner* ppo;
 		class ThreadAgentManager* agentMgr;
 		class ExperienceBuffer* expBuffer;
+		class PolicyPool* policyPool;
 		EnvCreateFn envCreateFn;
 		MetricSender* metricSender;
 		RenderSender* renderSender;
@@ -31,7 +32,8 @@ namespace RLGPC {
 
 		uint64_t
 			totalTimesteps = 0,
-			totalEpochs = 0;
+			totalEpochs = 0,
+			timestepsSincePoolUpdate = 0;
 			
 		WelfordRunningStat returnStats = WelfordRunningStat(1);
 
@@ -50,6 +52,7 @@ namespace RLGPC {
 		void Load();
 		void SaveStats(std::filesystem::path path);
 		void LoadStats(std::filesystem::path path);
+		void UpdatePolicyPool();
 
 		IterationCallback iterationCallback = NULL;
 		StepCallback stepCallback = NULL;
